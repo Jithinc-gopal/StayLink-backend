@@ -12,7 +12,7 @@ from accounts.services.auth_service import register_user
 from accounts.services.auth_service import login_user
 from accounts.services.auth_service import logout_user
 from accounts.services.profile_service import create_owner_profile,get_owner_profile,update_owner_profile
-from accounts.services.profile_service import create_broker_profile
+from accounts.services.profile_service import create_broker_profile, get_broker_profile,update_broker_profile
 from accounts.services.auth_service import google_auth
 from accounts.services.password_service import send_forgot_password_email, reset_password
 
@@ -92,29 +92,45 @@ class OwnerProfileCreateView(APIView):
 
         if serializer.is_valid():
             try:
-                profile = create_owner_profile(request.user, serializer)
-                return Response({
-                    "message": "Owner profile created successfully",
-                    "data": OwnerProfileSerializer(profile).data
-                }, status=status.HTTP_201_CREATED)
+                profile = create_owner_profile(
+                    user=request.user,
+                    serializer=serializer
+                )
+
+                return Response(
+                    {
+                        "message": "Owner profile created successfully",
+                        "data": OwnerProfileSerializer(profile).data
+                    },
+                    status=status.HTTP_201_CREATED
+                )
 
             except Exception as e:
-                return Response({"error": str(e)}, status=400)
+                return Response(
+                    {"error": str(e)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        return Response(serializer.errors, status=400)
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
-   
     def get(self, request):
         try:
             profile = get_owner_profile(request.user)
-            serializer = OwnerProfileSerializer(profile)
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                OwnerProfileSerializer(profile).data,
+                status=status.HTTP_200_OK
+            )
 
         except Exception as e:
-            return Response({"error": str(e)}, status=404)
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-    
     def put(self, request):
         try:
             profile = get_owner_profile(request.user)
@@ -122,21 +138,33 @@ class OwnerProfileCreateView(APIView):
             serializer = OwnerProfileSerializer(
                 profile,
                 data=request.data,
-                partial=True  # ✅ allows partial update
+                partial=True
             )
 
             if serializer.is_valid():
-                updated_profile = update_owner_profile(request.user, serializer)
+                updated_profile = update_owner_profile(
+                    user=request.user,
+                    serializer=serializer
+                )
 
-                return Response({
-                    "message": "Profile updated successfully",
-                    "data": OwnerProfileSerializer(updated_profile).data
-                }, status=status.HTTP_200_OK)
+                return Response(
+                    {
+                        "message": "Profile updated successfully",
+                        "data": OwnerProfileSerializer(updated_profile).data
+                    },
+                    status=status.HTTP_200_OK
+                )
 
-            return Response(serializer.errors, status=400)
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         except Exception as e:
-            return Response({"error": str(e)}, status=400)
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     
     
@@ -160,22 +188,29 @@ class BrokerProfileCreateView(APIView):
             try:
 
                 profile = create_broker_profile(
-                    request.user,
-                    serializer
+                    user=request.user,
+                    serializer=serializer
                 )
 
-                return Response({
-                    "message": "Profile created successfully",
-                    "data": BrokerProfileSerializer(profile).data
-                }, status=201)
+                return Response(
+                    {
+                        "message": "Profile created successfully",
+                        "data": BrokerProfileSerializer(profile).data
+                    },
+                    status=status.HTTP_201_CREATED
+                )
 
             except Exception as e:
 
-                return Response({
-                    "error": str(e)
-                }, status=400)
+                return Response(
+                    {"error": str(e)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        return Response(serializer.errors, status=400)
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     # =========================
     # GET PROFILE
@@ -184,24 +219,21 @@ class BrokerProfileCreateView(APIView):
 
         try:
 
-            profile = BrokerProfile.objects.get(
-                user=request.user
-            )
-
-            serializer = BrokerProfileSerializer(
-                profile
+            profile = get_broker_profile(
+                request.user
             )
 
             return Response(
-                serializer.data,
-                status=200
+                BrokerProfileSerializer(profile).data,
+                status=status.HTTP_200_OK
             )
 
-        except BrokerProfile.DoesNotExist:
+        except Exception as e:
 
-            return Response({
-                "error": "Broker profile not found"
-            }, status=404)
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
     # =========================
     # UPDATE PROFILE
@@ -210,8 +242,8 @@ class BrokerProfileCreateView(APIView):
 
         try:
 
-            profile = BrokerProfile.objects.get(
-                user=request.user
+            profile = get_broker_profile(
+                request.user
             )
 
             serializer = BrokerProfileSerializer(
@@ -222,49 +254,34 @@ class BrokerProfileCreateView(APIView):
 
             if serializer.is_valid():
 
-                serializer.save()
+                updated_profile = update_broker_profile(
+                    user=request.user,
+                    serializer=serializer
+                )
 
-                return Response({
-                    "message": "Profile updated successfully",
-                    "data": serializer.data
-                }, status=200)
+                return Response(
+                    {
+                        "message": "Profile updated successfully",
+                        "data": BrokerProfileSerializer(
+                            updated_profile
+                        ).data
+                    },
+                    status=status.HTTP_200_OK
+                )
 
             return Response(
                 serializer.errors,
-                status=400
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        except BrokerProfile.DoesNotExist:
+        except Exception as e:
 
-            return Response({
-                "error": "Broker profile not found"
-            }, status=404)
-    
-    
-    
-class BrokerStatusView(APIView):
-
-    permission_classes = [IsAuthenticated, IsBroker]
-
-    def get(self, request):
-
-        try:
-
-            profile = BrokerProfile.objects.get(
-                user=request.user
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
             )
-
-            return Response({
-                "profile_completed": True,
-                "verification_status": profile.verification_status
-            })
-
-        except BrokerProfile.DoesNotExist:
-
-            return Response({
-                "profile_completed": False,
-                "verification_status": "pending"
-            })  
+    
+    
     
 
 

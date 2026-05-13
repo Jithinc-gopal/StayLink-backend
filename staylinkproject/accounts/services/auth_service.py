@@ -61,6 +61,7 @@ def login_user(email, password):
         }
     }
 
+
 def logout_user(refresh_token):
     token = RefreshToken(refresh_token)
     token.blacklist()

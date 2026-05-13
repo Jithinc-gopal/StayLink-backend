@@ -15,7 +15,6 @@ urlpatterns = [
     path('google-login/', google_login, name='google_login'),
     path('forgot-password/', views.ForgotPasswordAPIView.as_view()),
     path('reset-password/', views.ResetPasswordAPIView.as_view()),
-    path('broker/status/', views.BrokerStatusView.as_view(), name='broker-status'),
     
 
 

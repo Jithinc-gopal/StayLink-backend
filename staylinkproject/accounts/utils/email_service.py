@@ -1,5 +1,6 @@
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 
 def send_registration_email(user):
@@ -107,3 +108,563 @@ def send_registration_email(user):
     msg = EmailMultiAlternatives(subject, text_content, from_email, to)
     msg.attach_alternative(html_content, "text/html")
     msg.send()
+    
+       
+def send_owner_profile_pending_email(user):
+
+    subject = "Profile Submitted Successfully ✅"
+
+    from_email = settings.EMAIL_HOST_USER
+
+    to = [user.email]
+
+    text_content = (
+        f"Hi {user.first_name}, "
+        "your owner profile was submitted successfully "
+        "and is waiting for admin approval."
+    )
+
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial; background:#f4f6fb; padding:20px;">
+
+        <div style="
+            max-width:600px;
+            margin:auto;
+            background:white;
+            border-radius:12px;
+            overflow:hidden;
+        ">
+
+            <div style="
+                background:linear-gradient(135deg,#003d9b,#0052cc);
+                color:white;
+                padding:30px;
+                text-align:center;
+            ">
+
+                <h1>StayLink</h1>
+
+            </div>
+
+            <div style="padding:30px;">
+
+                <h2 style="color:#003d9b;">
+                    Profile Submitted 🎉
+                </h2>
+
+                <p>
+                    Hi <b>{user.first_name}</b>,
+                </p>
+
+                <p>
+                    Your owner profile has been submitted successfully.
+                </p>
+
+                <p>
+                    Our admin team will review your profile shortly.
+                    Once approved, you can start listing properties.
+                </p>
+
+                <p>
+                    Verification Status:
+                    <b style="color:#eab308;">
+                        Pending Approval
+                    </b>
+                </p>
+
+            </div>
+
+            <div style="
+                text-align:center;
+                padding:20px;
+                font-size:12px;
+                color:#777;
+                background:#f9f9ff;
+            ">
+                © 2026 StayLink
+            </div>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+    msg = EmailMultiAlternatives(
+        subject,
+        text_content,
+        from_email,
+        to
+    )
+
+    msg.attach_alternative(
+        html_content,
+        "text/html"
+    )
+
+
+def send_broker_profile_pending_email(user):
+
+    subject = "Broker Profile Submitted Successfully ✅"
+
+    from_email = settings.EMAIL_HOST_USER
+
+    to = [user.email]
+
+    text_content = (
+        f"Hi {user.first_name}, "
+        "your broker profile was submitted successfully "
+        "and is waiting for admin approval."
+    )
+
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial; background:#f4f6fb; padding:20px;">
+
+        <div style="
+            max-width:600px;
+            margin:auto;
+            background:white;
+            border-radius:12px;
+            overflow:hidden;
+        ">
+
+            <div style="
+                background:linear-gradient(135deg,#003d9b,#0052cc);
+                color:white;
+                padding:30px;
+                text-align:center;
+            ">
+
+                <h1>StayLink</h1>
+
+            </div>
+
+            <div style="padding:30px;">
+
+                <h2 style="color:#003d9b;">
+                    Broker Profile Submitted 🎉
+                </h2>
+
+                <p>
+                    Hi <b>{user.first_name}</b>,
+                </p>
+
+                <p>
+                    Your broker profile has been submitted successfully.
+                </p>
+
+                <p>
+                    Our admin team will review your broker account shortly.
+                </p>
+
+                <p>
+                    Verification Status:
+                    <b style="color:#eab308;">
+                        Pending Approval
+                    </b>
+                </p>
+
+            </div>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+    msg = EmailMultiAlternatives(
+        subject,
+        text_content,
+        from_email,
+        to
+    )
+
+    msg.attach_alternative(
+        html_content,
+        "text/html"
+    )
+
+    msg.send()
+
+
+def send_admin_broker_notification(user):
+
+    User = get_user_model()
+
+    admins = User.objects.filter(
+        role='admin'
+    )
+
+    admin_emails = [
+        admin.email
+        for admin in admins
+    ]
+
+    if not admin_emails:
+        return
+
+    subject = "New Broker Registration"
+
+    from_email = settings.EMAIL_HOST_USER
+
+    text_content = (
+        f"{user.first_name} submitted "
+        "a broker profile."
+    )
+
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial; background:#f4f6fb; padding:20px;">
+
+        <div style="
+            max-width:600px;
+            margin:auto;
+            background:white;
+            border-radius:12px;
+            overflow:hidden;
+        ">
+
+            <div style="
+                background:linear-gradient(135deg,#003d9b,#0052cc);
+                color:white;
+                padding:30px;
+                text-align:center;
+            ">
+
+                <h1>StayLink Admin</h1>
+
+            </div>
+
+            <div style="padding:30px;">
+
+                <h2 style="color:#003d9b;">
+                    New Broker Profile Submitted
+                </h2>
+
+                <p>
+                    A new broker profile was submitted.
+                </p>
+
+                <ul>
+                    <li>
+                        <b>Name:</b>
+                        {user.first_name}
+                    </li>
+
+                    <li>
+                        <b>Email:</b>
+                        {user.email}
+                    </li>
+                </ul>
+
+                <p>
+                    Please review and approve the broker profile.
+                </p>
+
+            </div>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+    msg = EmailMultiAlternatives(
+        subject,
+        text_content,
+        from_email,
+        admin_emails
+    )
+
+    msg.attach_alternative(
+        html_content,
+        "text/html"
+    )
+
+    msg.send()    
+
+
+
+
+    msg.send()    
+     
+    
+def send_admin_owner_notification(user):
+
+    User = get_user_model()
+
+    admins = User.objects.filter(
+        role='admin'
+    )
+
+    admin_emails = [
+        admin.email
+        for admin in admins
+    ]
+
+    if not admin_emails:
+        return
+
+    subject = "New Owner Registration"
+
+    from_email = settings.EMAIL_HOST_USER
+
+    text_content = (
+        f"{user.first_name} submitted "
+        "a new owner profile."
+    )
+
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial; background:#f4f6fb; padding:20px;">
+
+        <div style="
+            max-width:600px;
+            margin:auto;
+            background:white;
+            border-radius:12px;
+            overflow:hidden;
+        ">
+
+            <div style="
+                background:linear-gradient(135deg,#003d9b,#0052cc);
+                color:white;
+                padding:30px;
+                text-align:center;
+            ">
+
+                <h1>StayLink Admin</h1>
+
+            </div>
+
+            <div style="padding:30px;">
+
+                <h2 style="color:#003d9b;">
+                    New Owner Profile Submitted
+                </h2>
+
+                <p>
+                    A new owner profile was submitted.
+                </p>
+
+                <ul>
+                    <li>
+                        <b>Name:</b>
+                        {user.first_name}
+                    </li>
+
+                    <li>
+                        <b>Email:</b>
+                        {user.email}
+                    </li>
+                </ul>
+
+                <p>
+                    Please review and approve the profile.
+                </p>
+
+            </div>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+    msg = EmailMultiAlternatives(
+        subject,
+        text_content,
+        from_email,
+        admin_emails
+    )
+
+    msg.attach_alternative(
+        html_content,
+        "text/html"
+    )
+
+    msg.send()
+
+
+def send_broker_profile_pending_email(user):
+
+    subject = "Broker Profile Submitted Successfully ✅"
+
+    from_email = settings.EMAIL_HOST_USER
+
+    to = [user.email]
+
+    text_content = (
+        f"Hi {user.first_name}, "
+        "your broker profile was submitted successfully "
+        "and is waiting for admin approval."
+    )
+
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial; background:#f4f6fb; padding:20px;">
+
+        <div style="
+            max-width:600px;
+            margin:auto;
+            background:white;
+            border-radius:12px;
+            overflow:hidden;
+        ">
+
+            <div style="
+                background:linear-gradient(135deg,#003d9b,#0052cc);
+                color:white;
+                padding:30px;
+                text-align:center;
+            ">
+
+                <h1>StayLink</h1>
+
+            </div>
+
+            <div style="padding:30px;">
+
+                <h2 style="color:#003d9b;">
+                    Broker Profile Submitted 🎉
+                </h2>
+
+                <p>
+                    Hi <b>{user.first_name}</b>,
+                </p>
+
+                <p>
+                    Your broker profile has been submitted successfully.
+                </p>
+
+                <p>
+                    Our admin team will review your broker account shortly.
+                </p>
+
+                <p>
+                    Verification Status:
+                    <b style="color:#eab308;">
+                        Pending Approval
+                    </b>
+                </p>
+
+            </div>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+    msg = EmailMultiAlternatives(
+        subject,
+        text_content,
+        from_email,
+        to
+    )
+
+    msg.attach_alternative(
+        html_content,
+        "text/html"
+    )
+
+    msg.send()
+
+
+def send_admin_broker_notification(user):
+
+    User = get_user_model()
+
+    admins = User.objects.filter(
+        role='admin'
+    )
+
+    admin_emails = [
+        admin.email
+        for admin in admins
+    ]
+
+    if not admin_emails:
+        return
+
+    subject = "New Broker Registration"
+
+    from_email = settings.EMAIL_HOST_USER
+
+    text_content = (
+        f"{user.first_name} submitted "
+        "a broker profile."
+    )
+
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial; background:#f4f6fb; padding:20px;">
+
+        <div style="
+            max-width:600px;
+            margin:auto;
+            background:white;
+            border-radius:12px;
+            overflow:hidden;
+        ">
+
+            <div style="
+                background:linear-gradient(135deg,#003d9b,#0052cc);
+                color:white;
+                padding:30px;
+                text-align:center;
+            ">
+
+                <h1>StayLink Admin</h1>
+
+            </div>
+
+            <div style="padding:30px;">
+
+                <h2 style="color:#003d9b;">
+                    New Broker Profile Submitted
+                </h2>
+
+                <p>
+                    A new broker profile was submitted.
+                </p>
+
+                <ul>
+                    <li>
+                        <b>Name:</b>
+                        {user.first_name}
+                    </li>
+
+                    <li>
+                        <b>Email:</b>
+                        {user.email}
+                    </li>
+                </ul>
+
+                <p>
+                    Please review and approve the broker profile.
+                </p>
+
+            </div>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+    msg = EmailMultiAlternatives(
+        subject,
+        text_content,
+        from_email,
+        admin_emails
+    )
+
+    msg.attach_alternative(
+        html_content,
+        "text/html"
+    )
+
+    msg.send()            
