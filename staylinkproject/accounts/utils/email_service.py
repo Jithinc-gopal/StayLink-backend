@@ -1,0 +1,109 @@
+from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
+
+
+def send_registration_email(user):
+    subject = "Welcome to StayLink 🎉"
+    from_email = settings.EMAIL_HOST_USER
+    to = [user.email]
+    print(user.first_name)
+
+    text_content = f"Hi {user.first_name}, your account is created."
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                background-color: #f4f6fb;
+            }}
+            .container {{
+                max-width: 600px;
+                margin: 40px auto;
+                background: #ffffff;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            }}
+            .header {{
+                background: linear-gradient(135deg, #003d9b, #0052cc);
+                color: white;
+                padding: 30px;
+                text-align: center;
+            }}
+            .header h1 {{
+                margin: 0;
+                font-size: 24px;
+            }}
+            .content {{
+                padding: 30px;
+                color: #333;
+                line-height: 1.6;
+            }}
+            .content h2 {{
+                margin-top: 0;
+                color: #003d9b;
+            }}
+            .button {{
+                display: inline-block;
+                margin-top: 20px;
+                padding: 12px 24px;
+                background: #003d9b;
+                color: #ffffff;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+            }}
+            .footer {{
+                text-align: center;
+                font-size: 12px;
+                color: #888;
+                padding: 20px;
+                background: #f9f9ff;
+            }}
+        </style>
+    </head>
+    <body>
+
+        <div class="container">
+
+            <div class="header">
+                <h1>StayLink</h1>
+                <p>Seamless Stays, Curated for You</p>
+            </div>
+
+            <div class="content">
+                <h2>Welcome to StayLink 🎉</h2>
+                <p>Hi <b>{user.first_name}</b>,</p>
+
+                <p>
+                    Your account has been successfully created. 
+                    You're now ready to explore properties, connect with brokers, 
+                    and experience a smarter way to stay.
+                </p>
+
+                <p>
+                    Start your journey with StayLink and discover premium listings tailored just for you.
+                </p>
+
+                <a href="#" class="button">Explore Now</a>
+            </div>
+
+            <div class="footer">
+                © 2024 StayLink • All rights reserved
+            </div>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+
+    msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()
