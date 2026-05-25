@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.utils import timezone
+from datetime import timedelta
+import random
 
 
 
@@ -77,6 +80,42 @@ class CustomUser(AbstractUser):
 
 
 
+class EmailVerification(models.Model):
+
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE
+    )
+
+    code = models.CharField(
+        max_length=6
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    expires_at = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+
+        if not self.expires_at:
+
+            self.expires_at = (
+                timezone.now() +
+                timedelta(minutes=10)
+            )
+
+        super().save(*args, **kwargs)
+
+    def is_expired(self):
+
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+
+        return self.user.email
+
 
 VERIFICATION_STATUS = (
     ('pending', 'Pending'),
@@ -98,15 +137,11 @@ class OwnerProfile(models.Model):
     address = models.TextField()
 
     city = models.CharField(
-        max_length=100,
-        null=True,
-        blank=True
+        max_length=100
     )
 
     district = models.CharField(
-        max_length=100,
-        null=True,
-        blank=True
+        max_length=100
     )
 
     state = models.CharField(
@@ -115,27 +150,26 @@ class OwnerProfile(models.Model):
     )
 
     pincode = models.CharField(
-        max_length=10,
-        null=True,
-        blank=True
+        max_length=10
     )
 
     profile_image = models.ImageField(
-        upload_to='owners/',
-        null=True,
-        blank=True
+        upload_to='owners/'
     )
 
     id_proof = models.FileField(
-        upload_to='id_proofs/',
-        null=True,
-        blank=True
+        upload_to='id_proofs/'
     )
 
     verification_status = models.CharField(
         max_length=20,
         choices=VERIFICATION_STATUS,
         default='pending'
+    )
+
+    rejection_reason = models.TextField(
+        blank=True,
+        null=True
     )
 
     def __str__(self):
@@ -171,27 +205,26 @@ class BrokerProfile(models.Model):
     experience = models.PositiveIntegerField()
 
     license_number = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True
+        max_length=100
     )
 
     profile_image = models.ImageField(
-        upload_to='brokers/',
-        null=True,
-        blank=True
+        upload_to='brokers/'
     )
 
     id_proof = models.FileField(
-        upload_to='broker_ids/',
-        null=True,
-        blank=True
+        upload_to='broker_ids/'
     )
 
     verification_status = models.CharField(
         max_length=20,
         choices=VERIFICATION_STATUS,
         default='pending'
+    )
+
+    rejection_reason = models.TextField(
+        blank=True,
+        null=True
     )
 
     def __str__(self):

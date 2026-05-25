@@ -15,23 +15,81 @@ from accounts.services.profile_service import create_owner_profile,get_owner_pro
 from accounts.services.profile_service import create_broker_profile, get_broker_profile,update_broker_profile
 from accounts.services.auth_service import google_auth
 from accounts.services.password_service import send_forgot_password_email, reset_password
-
-
+from accounts.services.email_verification_service import (
+    verify_email_code
+)
 
 
 class RegisterAPIView(APIView):
+
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
+
+        serializer = RegisterSerializer(
+            data=request.data
+        )
 
         if serializer.is_valid():
-            data = register_user(serializer)
-            return Response(data, status=201)
 
-        return Response(serializer.errors, status=400)
+            try:
+
+                data = register_user(
+                    serializer
+                )
+
+                return Response(
+                    data,
+                    status=201
+                )
+
+            except Exception as e:
+
+                return Response(
+                    {
+                        "error": str(e)
+                    },
+                    status=400
+                )
+
+        return Response(
+            serializer.errors,
+            status=400
+        )
 
 
+
+
+class VerifyCodeAPIView(APIView):
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+
+        try:
+
+            email = request.data.get("email")
+
+            code = request.data.get("code")
+
+            data = verify_email_code(
+                email,
+                code
+            )
+
+            return Response(
+                data,
+                status=200
+            )
+
+        except Exception as e:
+
+            return Response(
+                {
+                    "error": str(e)
+                },
+                status=400
+            )
 
 
 class PartnerRegisterAPIView(APIView):

@@ -7,13 +7,13 @@ from django.utils.encoding import (
     force_bytes,
     force_str
 )
-from django.core.mail import send_mail
 from django.conf import settings
 from accounts.models import CustomUser
 
+# REMOVED: from django.core.mail import send_mail
+# Email sending moved to Celery task — send_mail runs inside the worker now
 
 token_generator = PasswordResetTokenGenerator()
-
 
 
 def send_forgot_password_email(email):
@@ -36,6 +36,8 @@ def send_forgot_password_email(email):
 
     # =========================
     # FRONTEND RESET URL
+    # Build the reset link here, pass it as a string to the task
+    # The task receives a plain string — safe for JSON serialization
     # =========================
 
     reset_link = (
@@ -43,24 +45,15 @@ def send_forgot_password_email(email):
         f"/reset-password/{uid}/{token}/"
     )
 
-    send_mail(
-        subject="Reset Your Password",
-
-        message=(
-            f"Click the link below to reset "
-            f"your password:\n\n{reset_link}"
-        ),
-
-        from_email=settings.EMAIL_HOST_USER,
-
-        recipient_list=[email],
-    )
+    # CHANGED: was send_mail() called directly here — blocking SMTP call
+    # Now fires as a background task — API returns instantly
+    # reset_link passed as a plain string argument (JSON serializable)
+    from accounts.tasks import send_forgot_password_task
+    send_forgot_password_task.delay(user.id, reset_link)
 
     return {
         "message": "Password reset link sent to email"
     }
-
-
 
 
 def reset_password(uid, token, password):

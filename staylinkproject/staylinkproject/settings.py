@@ -15,6 +15,7 @@ import mimetypes
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
+load_dotenv()
 
 
 # Ensure correct MIME types so CSS/JS aren't blocked
@@ -31,9 +32,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG") == "True"
+SECRET_KEY = os.getenv("SECRET_KEY")# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.getenv("DEBUG", "True") == "True"
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 # Application definition
@@ -46,12 +46,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'accounts',
+    "django_celery_beat",
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
     'rest_framework_simplejwt.token_blacklist', 
     'drf_spectacular', 
     'owner',
+    "traveler",
 
 ]
 
@@ -147,12 +149,22 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "BLACKLIST_AFTER_ROTATION": True,  
 
+
+SIMPLE_JWT = {
+
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+
+    "ROTATE_REFRESH_TOKENS": True,
+
+    "BLACKLIST_AFTER_ROTATION": True,
+
+    "AUTH_HEADER_TYPES": ("Bearer",),
+
+    # 
+    "UPDATE_LAST_LOGIN": True,
 }
 
 
@@ -173,7 +185,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 
-load_dotenv()
+
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 FRONTEND_URL = os.getenv("FRONTEND_URL")
@@ -188,3 +200,40 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv(
     "EMAIL_HOST_PASSWORD"
 )
+
+
+
+
+# ============================================
+# CELERY CONFIGURATION
+# ============================================
+
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+
+# Result backend — stores task success/failure status
+# Using Redis database 1 (separate from broker on database 0)
+CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/1"
+
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "Asia/Kolkata"
+
+# Hard kill a task after 30 minutes
+CELERY_TASK_TIME_LIMIT = 30 * 60
+
+# Soft warning raised at 25 minutes inside the task
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60
+
+# Restart worker process after 200 tasks — prevents memory leaks
+# Important on Windows with --pool=solo
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 200
+
+# Show task state as STARTED while running
+CELERY_TASK_TRACK_STARTED = True
+
+# All accounts app tasks go to email_queue
+# Later you'll add booking_queue, notification_queue here
+CELERY_TASK_ROUTES = {
+    "accounts.tasks.*": {"queue": "email_queue"},
+}

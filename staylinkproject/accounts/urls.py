@@ -4,6 +4,9 @@ from django.conf import settings
 from .api.views import google_login
 
 from django.conf.urls.static import static
+from rest_framework_simplejwt.views import (
+    TokenRefreshView,
+)
 
 urlpatterns = [
     path('register/',views.RegisterAPIView.as_view(),name='register'),
@@ -15,7 +18,9 @@ urlpatterns = [
     path('google-login/', google_login, name='google_login'),
     path('forgot-password/', views.ForgotPasswordAPIView.as_view()),
     path('reset-password/', views.ResetPasswordAPIView.as_view()),
-    
+    path("verify-code/",views.VerifyCodeAPIView.as_view()),  
+    path("token/refresh/",TokenRefreshView.as_view(),name="token_refresh"),
+  
 
 
 ] 

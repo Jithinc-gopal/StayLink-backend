@@ -3,13 +3,14 @@ from accounts.models import (
     BrokerProfile
 )
 
-from accounts.utils.email_service import (
-    send_owner_profile_pending_email,
-    send_admin_owner_notification,
-    send_broker_profile_pending_email,
-    send_admin_broker_notification
-)
-
+# REMOVED: all four direct email function imports
+# from accounts.utils.email_service import (
+#     send_owner_profile_pending_email,
+#     send_admin_owner_notification,
+#     send_broker_profile_pending_email,
+#     send_admin_broker_notification
+# )
+# Tasks import email_service internally — nothing needed here at top level
 
 
 def create_owner_profile(user, serializer):
@@ -25,23 +26,27 @@ def create_owner_profile(user, serializer):
     user.profile_completed = True
     user.save()
 
-    # EMAIL TO OWNER
-    try:
-        send_owner_profile_pending_email(user)
+    # CHANGED: were two separate try/except blocks calling email functions
+    # directly and printing errors if they failed.
+    #
+    # Problems with the old approach:
+    # 1. Both email calls happened inside the API request — user waited
+    # 2. send_admin_owner_notification did a DB query for admin emails
+    #    — that query was happening inside your request cycle
+    # 3. try/except with print() silently swallowed failures forever
+    #
+    # Now: both fire as independent background tasks
+    # If SMTP fails, Celery retries automatically (up to 3 times)
+    # Your API returns 201 immediately regardless of email status
+    from accounts.tasks import (
+        send_owner_pending_task,
+        send_admin_owner_notification_task,
+    )
 
-    except Exception as e:
-        print(f"Owner email error: {e}")
-
-    # EMAIL TO ADMIN
-    try:
-        send_admin_owner_notification(user)
-
-    except Exception as e:
-        print(f"Admin owner email error: {e}")
+    send_owner_pending_task.delay(user.id)
+    send_admin_owner_notification_task.delay(user.id)
 
     return profile
-
-
 
 
 def create_broker_profile(user, serializer):
@@ -57,23 +62,25 @@ def create_broker_profile(user, serializer):
     user.profile_completed = True
     user.save()
 
-    # EMAIL TO BROKER
-    try:
-        send_broker_profile_pending_email(user)
+    # CHANGED: same as above — were two try/except email blocks
+    # Now two independent background tasks
+    # send_admin_broker_notification DB query runs in the worker
+    from accounts.tasks import (
+        send_broker_pending_task,
+        send_admin_broker_notification_task,
+    )
 
-    except Exception as e:
-        print(f"Broker email error: {e}")
-
-    # EMAIL TO ADMIN
-    try:
-        send_admin_broker_notification(user)
-
-    except Exception as e:
-        print(f"Admin broker email error: {e}")
+    send_broker_pending_task.delay(user.id)
+    send_admin_broker_notification_task.delay(user.id)
 
     return profile
 
 
+# =========================
+# OWNER PROFILE — GET / UPDATE
+# These are synchronous — no changes needed
+# They only read/write to DB, no email involved
+# =========================
 
 def get_owner_profile(user):
 
@@ -82,7 +89,6 @@ def get_owner_profile(user):
 
     except OwnerProfile.DoesNotExist:
         raise Exception("Owner profile not found")
-
 
 
 def update_owner_profile(user, serializer):
@@ -98,6 +104,10 @@ def update_owner_profile(user, serializer):
     return updated_profile
 
 
+# =========================
+# BROKER PROFILE — GET / UPDATE
+# These are synchronous — no changes needed
+# =========================
 
 def get_broker_profile(user):
 
@@ -106,9 +116,8 @@ def get_broker_profile(user):
 
     except BrokerProfile.DoesNotExist:
         raise Exception("Broker profile not found")
-    
-    
-    
+
+
 def update_broker_profile(user, serializer):
 
     try:
@@ -119,4 +128,4 @@ def update_broker_profile(user, serializer):
 
     updated_profile = serializer.save(user=user)
 
-    return updated_profile    
+    return updated_profile

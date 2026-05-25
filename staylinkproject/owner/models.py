@@ -11,7 +11,7 @@ class Property(models.Model):
         ('villa', 'Villa'),
         ('room', 'Room'),
         ('hostel', 'Hostel'),
-        ('pg','PG'),
+        ('pg', 'PG'),
     ]
 
     PRICE_UNIT_CHOICES = [
@@ -20,50 +20,171 @@ class Property(models.Model):
         ('month', 'Per Month'),
     ]
 
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
+    PROPERTY_STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('hidden', 'Hidden'),
+        ('blocked', 'Blocked'),
     ]
 
-    
-    owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="properties")
-    
+    owner = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="properties"
+    )
+
     title = models.CharField(max_length=255)
+
     description = models.TextField()
 
-    property_type = models.CharField(max_length=20, choices=PROPERTY_TYPE_CHOICES)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    price_unit = models.CharField(max_length=10, choices=PRICE_UNIT_CHOICES, default='night')
+    property_type = models.CharField(
+        max_length=20,
+        choices=PROPERTY_TYPE_CHOICES
+    )
+
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    price_unit = models.CharField(
+        max_length=10,
+        choices=PRICE_UNIT_CHOICES,
+        default='night'
+    )
+
+    # =========================
+    # LOCATION
+    # =========================
+
     address = models.TextField()
+
     city = models.CharField(max_length=100)
+
     state = models.CharField(max_length=100)
+
+    latitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True
+    )
+
+    longitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True
+    )
+
+    google_map_link = models.URLField(
+        blank=True,
+        null=True
+    )
+
+    # =========================
+    # ROOM DETAILS
+    # =========================
+
     bedrooms = models.PositiveIntegerField(default=0)
+
     bathrooms = models.PositiveIntegerField(default=0)
+
+    max_guest = models.PositiveIntegerField(default=1)
+
     is_furnished = models.BooleanField(default=False)
-    privacy_level = models.IntegerField(help_text="1 (low) to 5 (high)")
-    ambience = models.CharField(max_length=100)  
+
+    privacy_level = models.IntegerField(
+        help_text="1 to 5"
+    )
+
+    ambience = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    # =========================
+    # PROPERTY DETAILS
+    # =========================
+
     nearby_facilities = models.TextField(blank=True)
+
     extra_details = models.TextField(blank=True)
+
+    rules = models.TextField(blank=True)
+
+    cancellation_policy = models.TextField(blank=True)
+
     advance_percentage = models.PositiveIntegerField(default=20)
+
     cancellation_days = models.PositiveIntegerField(default=5)
+
     is_available = models.BooleanField(default=True)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-    admin_feedback = models.TextField(blank=True)
+
+    # =========================
+    # ADMIN CONTROL
+    # =========================
+
+    status = models.CharField(
+        max_length=20,
+        choices=PROPERTY_STATUS_CHOICES,
+        default='active'
+    )
+
+    admin_note = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    # =========================
+    # MANAGEMENT
+    # =========================
+
+    management_name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True
+    )
+
+    management_phone = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True
+    )
+
+    management_email = models.EmailField(
+        null=True,
+        blank=True
+    )
+
+    # =========================
+    # TIMESTAMP
+    # =========================
 
     created_at = models.DateTimeField(auto_now_add=True)
+
     updated_at = models.DateTimeField(auto_now=True)
 
-    
+    # =========================
+    # VALIDATIONS
+    # =========================
+
     def clean(self):
+
         if self.price <= 0:
-            raise ValidationError("Price must be greater than 0")
+            raise ValidationError(
+                "Price must be greater than 0"
+            )
 
         if not (1 <= self.privacy_level <= 5):
-            raise ValidationError("Privacy level must be between 1 and 5")
+            raise ValidationError(
+                "Privacy level must be between 1 and 5"
+            )
 
         if self.advance_percentage > 100:
-            raise ValidationError("Advance cannot exceed 100%")
+            raise ValidationError(
+                "Advance cannot exceed 100%"
+            )
 
     def __str__(self):
         return self.title
@@ -72,9 +193,20 @@ class Property(models.Model):
     
     
 class PropertyImage(models.Model):
-    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="property_images/")
-    
+
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="images"
+    )
+
+    image = models.ImageField(
+        upload_to="property_images/"
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
     
     
     
@@ -95,55 +227,64 @@ class PropertyAmenity(models.Model):
        
     
 class PropertyAvailability(models.Model):
-    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="availability")
+
+    BLOCK_TYPE_CHOICES = [
+        ('manual_block', 'Manual Block'),
+        ('leave', 'Owner Leave'),
+        ('maintenance', 'Maintenance'),
+    ]
+
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="availability"
+    )
 
     date = models.DateField()
 
     is_available = models.BooleanField(default=True)
 
-    # 🔥 KEY FOR YOUR DIRECT CONTACT FLOW
-    is_manual_block = models.BooleanField(default=False)
+    block_type = models.CharField(
+        max_length=30,
+        choices=BLOCK_TYPE_CHOICES,
+        blank=True,
+        null=True
+    )
 
-    note = models.CharField(max_length=255, blank=True)
+    note = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
     class Meta:
         unique_together = ('property', 'date')
-
-    def __str__(self):
-        return f"{self.property.title} - {self.date}"
+  
     
     
+class PropertyReport(models.Model):
+
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE
+    )
+
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE
+    )
+
+    reason = models.TextField()
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+        
+  
     
-    
-class Booking(models.Model):
 
-    STATUS_CHOICES = [
-        ('confirmed', 'Confirmed'),
-        ('cancelled', 'Cancelled'),
-    ]
-
-    PAYMENT_STATUS_CHOICES = [
-        ('partial', 'Partial Paid'),
-        ('paid', 'Fully Paid'),
-        ('refunded', 'Refunded'),
-    ]
-
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="bookings")
-    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="bookings")
-
-    check_in = models.DateField()
-    check_out = models.DateField()
-
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    advance_paid = models.DecimalField(max_digits=10, decimal_places=2)
-
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='confirmed')
-    payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS_CHOICES, default='partial')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user} - {self.property.title}"
-    
-    
+        
             

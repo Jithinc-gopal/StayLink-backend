@@ -3,6 +3,89 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 
 
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.http import (
+    urlsafe_base64_encode
+)
+
+token_generator = PasswordResetTokenGenerator()
+
+
+def send_verification_code_email(
+    user,
+    code
+):
+
+    subject = "Verify Your StayLink Account"
+
+    from_email = settings.EMAIL_HOST_USER
+
+    to = [user.email]
+
+    text_content = (
+        f"Your verification code is: {code}"
+    )
+
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial;">
+
+        <div style="
+            max-width:600px;
+            margin:auto;
+            padding:40px;
+            background:#ffffff;
+            border-radius:12px;
+        ">
+
+            <h1 style="color:#003d9b;">
+                StayLink Email Verification
+            </h1>
+
+            <p>
+                Hi <b>{user.first_name}</b>,
+            </p>
+
+            <p>
+                Use the verification code below
+                to activate your account.
+            </p>
+
+            <div style="
+                font-size:36px;
+                font-weight:bold;
+                letter-spacing:8px;
+                color:#003d9b;
+                margin:30px 0;
+            ">
+                {code}
+            </div>
+
+            <p>
+                This code will expire in 5 minutes.
+            </p>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+    msg = EmailMultiAlternatives(
+        subject,
+        text_content,
+        from_email,
+        to
+    )
+
+    msg.attach_alternative(
+        html_content,
+        "text/html"
+    )
+
+    msg.send()
+
+
 def send_registration_email(user):
     subject = "Welcome to StayLink 🎉"
     from_email = settings.EMAIL_HOST_USER
@@ -202,6 +285,7 @@ def send_owner_profile_pending_email(user):
         html_content,
         "text/html"
     )
+    msg.send()
 
 
 def send_broker_profile_pending_email(user):
@@ -385,12 +469,7 @@ def send_admin_broker_notification(user):
 
     msg.send()    
 
-
-
-
-    msg.send()    
-     
-    
+  
 def send_admin_owner_notification(user):
 
     User = get_user_model()
@@ -488,9 +567,9 @@ def send_admin_owner_notification(user):
     msg.send()
 
 
-def send_broker_profile_pending_email(user):
+def send_profile_approved_email(user):
 
-    subject = "Broker Profile Submitted Successfully ✅"
+    subject = "Profile Approved ✅"
 
     from_email = settings.EMAIL_HOST_USER
 
@@ -498,8 +577,7 @@ def send_broker_profile_pending_email(user):
 
     text_content = (
         f"Hi {user.first_name}, "
-        "your broker profile was submitted successfully "
-        "and is waiting for admin approval."
+        "your profile has been approved."
     )
 
     html_content = f"""
@@ -515,7 +593,7 @@ def send_broker_profile_pending_email(user):
         ">
 
             <div style="
-                background:linear-gradient(135deg,#003d9b,#0052cc);
+                background:linear-gradient(135deg,#16a34a,#22c55e);
                 color:white;
                 padding:30px;
                 text-align:center;
@@ -527,8 +605,8 @@ def send_broker_profile_pending_email(user):
 
             <div style="padding:30px;">
 
-                <h2 style="color:#003d9b;">
-                    Broker Profile Submitted 🎉
+                <h2 style="color:#16a34a;">
+                    Profile Approved 🎉
                 </h2>
 
                 <p>
@@ -536,18 +614,12 @@ def send_broker_profile_pending_email(user):
                 </p>
 
                 <p>
-                    Your broker profile has been submitted successfully.
+                    Your profile has been approved successfully.
                 </p>
 
                 <p>
-                    Our admin team will review your broker account shortly.
-                </p>
-
-                <p>
-                    Verification Status:
-                    <b style="color:#eab308;">
-                        Pending Approval
-                    </b>
+                    You can now access all partner features
+                    and start listing properties.
                 </p>
 
             </div>
@@ -571,31 +643,24 @@ def send_broker_profile_pending_email(user):
     )
 
     msg.send()
+    
+    
+    
+def send_profile_rejected_email(
+    user,
+    reason
+):
 
-
-def send_admin_broker_notification(user):
-
-    User = get_user_model()
-
-    admins = User.objects.filter(
-        role='admin'
-    )
-
-    admin_emails = [
-        admin.email
-        for admin in admins
-    ]
-
-    if not admin_emails:
-        return
-
-    subject = "New Broker Registration"
+    subject = "Profile Rejected ❌"
 
     from_email = settings.EMAIL_HOST_USER
 
+    to = [user.email]
+
     text_content = (
-        f"{user.first_name} submitted "
-        "a broker profile."
+        f"Hi {user.first_name}, "
+        f"your profile was rejected.\n\n"
+        f"Reason: {reason}"
     )
 
     html_content = f"""
@@ -611,40 +676,46 @@ def send_admin_broker_notification(user):
         ">
 
             <div style="
-                background:linear-gradient(135deg,#003d9b,#0052cc);
+                background:linear-gradient(135deg,#dc2626,#ef4444);
                 color:white;
                 padding:30px;
                 text-align:center;
             ">
 
-                <h1>StayLink Admin</h1>
+                <h1>StayLink</h1>
 
             </div>
 
             <div style="padding:30px;">
 
-                <h2 style="color:#003d9b;">
-                    New Broker Profile Submitted
+                <h2 style="color:#dc2626;">
+                    Profile Rejected
                 </h2>
 
                 <p>
-                    A new broker profile was submitted.
+                    Hi <b>{user.first_name}</b>,
                 </p>
 
-                <ul>
-                    <li>
-                        <b>Name:</b>
-                        {user.first_name}
-                    </li>
-
-                    <li>
-                        <b>Email:</b>
-                        {user.email}
-                    </li>
-                </ul>
+                <p>
+                    Unfortunately your profile verification
+                    was rejected by our admin team.
+                </p>
 
                 <p>
-                    Please review and approve the broker profile.
+                    <b>Reason:</b>
+                </p>
+
+                <div style="
+                    background:#fef2f2;
+                    padding:15px;
+                    border-radius:8px;
+                    color:#991b1b;
+                ">
+                    {reason}
+                </div>
+
+                <p style="margin-top:20px;">
+                    Please update your profile and try again.
                 </p>
 
             </div>
@@ -659,7 +730,7 @@ def send_admin_broker_notification(user):
         subject,
         text_content,
         from_email,
-        admin_emails
+        to
     )
 
     msg.attach_alternative(
@@ -667,4 +738,5 @@ def send_admin_broker_notification(user):
         "text/html"
     )
 
-    msg.send()            
+    msg.send()    
+         
