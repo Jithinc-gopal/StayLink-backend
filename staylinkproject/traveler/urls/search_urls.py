@@ -7,8 +7,8 @@ from traveler.views.search_views import (
 urlpatterns = [
 
     path(
-        '',
+        "properties/",
         PropertySearchView.as_view(),
-        name='property-search'
+        name="property-search"
     ),
 ]

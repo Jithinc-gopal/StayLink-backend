@@ -16,21 +16,26 @@ class PropertySearchView(APIView):
 
         filters = {
 
-            "location": request.GET.get("location"),
+            "location":
+            request.GET.get("location"),
 
-            "property_type": request.GET.get(
-                "property_type"
-            ),
+            "property_type":
+            request.GET.get("property_type"),
 
-            "guests": request.GET.get("guests"),
+            "guests":
+            request.GET.get("guests"),
 
-            "min_price": request.GET.get(
-                "min_price"
-            ),
+            "min_price":
+            request.GET.get("min_price"),
 
-            "max_price": request.GET.get(
-                "max_price"
-            ),
+            "max_price":
+            request.GET.get("max_price"),
+
+            "furnished":
+            request.GET.get("furnished"),
+
+            "ordering":
+            request.GET.get("ordering"),
         }
 
         properties = (
@@ -39,9 +44,10 @@ class PropertySearchView(APIView):
             )
         )
 
-        serializer =PropertySerializer(
+        serializer = PropertySerializer(
             properties,
-            many=True
+            many=True,
+            context={"request": request}
         )
 
         return Response(serializer.data)

@@ -9,15 +9,13 @@ class PropertySearchService:
     def search_properties(filters):
 
         queryset = Property.objects.filter(
-            status='active',
+            status="active",
             is_available=True
         )
 
-        # =========================
-        # LOCATION SEARCH
-        # =========================
+        # ================= LOCATION =================
 
-        location = filters.get('location')
+        location = filters.get("location")
 
         if location:
 
@@ -30,11 +28,11 @@ class PropertySearchService:
                 Q(address__icontains=location)
             )
 
-        # =========================
-        # PROPERTY TYPE
-        # =========================
+        # ================= PROPERTY TYPE =================
 
-        property_type = filters.get('property_type')
+        property_type = filters.get(
+            "property_type"
+        )
 
         if property_type:
 
@@ -42,11 +40,9 @@ class PropertySearchService:
                 property_type=property_type
             )
 
-        # =========================
-        # GUEST COUNT
-        # =========================
+        # ================= GUESTS =================
 
-        guests = filters.get('guests')
+        guests = filters.get("guests")
 
         if guests:
 
@@ -54,11 +50,9 @@ class PropertySearchService:
                 max_guest__gte=guests
             )
 
-        # =========================
-        # MIN PRICE
-        # =========================
+        # ================= PRICE =================
 
-        min_price = filters.get('min_price')
+        min_price = filters.get("min_price")
 
         if min_price:
 
@@ -66,11 +60,7 @@ class PropertySearchService:
                 price__gte=min_price
             )
 
-        # =========================
-        # MAX PRICE
-        # =========================
-
-        max_price = filters.get('max_price')
+        max_price = filters.get("max_price")
 
         if max_price:
 
@@ -78,4 +68,30 @@ class PropertySearchService:
                 price__lte=max_price
             )
 
-        return queryset.order_by('-created_at')
+        # ================= FURNISHED =================
+
+        furnished = filters.get("furnished")
+
+        if furnished == "true":
+
+            queryset = queryset.filter(
+                is_furnished=True
+            )
+
+        # ================= SORTING =================
+
+        ordering = filters.get("ordering")
+
+        if ordering:
+
+            queryset = queryset.order_by(
+                ordering
+            )
+
+        else:
+
+            queryset = queryset.order_by(
+                "-created_at"
+            )
+
+        return queryset
