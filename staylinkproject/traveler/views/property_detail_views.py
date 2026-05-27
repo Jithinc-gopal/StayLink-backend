@@ -1,5 +1,7 @@
 from rest_framework.views import APIView
+
 from rest_framework.response import Response
+
 from rest_framework import status
 
 from owner.models import Property
@@ -9,28 +11,39 @@ from owner.serializers.property_serializers import (
 )
 
 
-class PropertyDetailView(APIView):
+class TravelerPropertyDetailView(APIView):
 
     def get(self, request, pk):
 
         try:
 
-            property = Property.objects.get(
+            property_instance = Property.objects.get(
+
                 id=pk,
-                status='active'
+
+                status="active",
+
+                is_available=True
             )
 
         except Property.DoesNotExist:
 
             return Response(
+
                 {
-                    "error": "Property not found"
+                    "message":
+                    "Property not found"
                 },
+
                 status=status.HTTP_404_NOT_FOUND
             )
 
         serializer = PropertyDetailSerializer(
-            property
+            property_instance,
+            context={"request": request}
         )
 
-        return Response(serializer.data)
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK
+        )
