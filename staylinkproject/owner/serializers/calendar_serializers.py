@@ -2,6 +2,7 @@ from rest_framework import serializers
 from ..models import (
     PropertyAvailability,
 )
+from bookings.models import Booking
 
 
 class PropertyAvailabilitySerializer(serializers.ModelSerializer):
@@ -12,6 +13,26 @@ class PropertyAvailabilitySerializer(serializers.ModelSerializer):
 
 
 
+
+class OwnerBookingSerializer(
+    serializers.ModelSerializer
+):
+
+    traveler_name = serializers.CharField(
+        source="traveler.username",
+        read_only=True
+    )
+
+    class Meta:
+        model = Booking
+
+        fields = [
+            "id",
+            "check_in",
+            "check_out",
+            "status",
+            "traveler_name",
+        ]
 
 
 class BlockDatesSerializer(serializers.Serializer):

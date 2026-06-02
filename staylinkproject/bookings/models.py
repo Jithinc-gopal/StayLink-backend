@@ -36,6 +36,13 @@ class Booking(models.Model):
     check_in = models.DateField()
 
     check_out = models.DateField()
+    
+    check_in_time = models.TimeField(default="14:00")
+    check_out_time = models.TimeField(default="11:00")
+
+    one_week_reminder_sent = models.BooleanField(default=False)
+    two_day_reminder_sent = models.BooleanField(default=False)
+    two_hour_reminder_sent = models.BooleanField(default=False)
 
     guests_count = models.PositiveIntegerField()
 

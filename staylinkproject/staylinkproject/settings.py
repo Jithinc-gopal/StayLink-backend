@@ -15,6 +15,7 @@ import mimetypes
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
+from celery.schedules import crontab
 load_dotenv()
 
 
@@ -45,16 +46,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',                          
+    'chat',
     'accounts',
-    "django_celery_beat",
+    'django_celery_beat',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
     'rest_framework_simplejwt.token_blacklist', 
     'drf_spectacular', 
     'owner',
-    "traveler",
-    "bookings"
+    'traveler',
+    'bookings',
+    'payments'
 
 ]
 
@@ -237,4 +241,50 @@ CELERY_TASK_TRACK_STARTED = True
 # Later you'll add booking_queue, notification_queue here
 CELERY_TASK_ROUTES = {
     "accounts.tasks.*": {"queue": "email_queue"},
+    "bookings.tasks.*": {"queue": "email_queue"},
+}
+
+
+
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+
+
+CELERY_BEAT_SCHEDULE = {
+
+    "one-week-reminders": {
+        "task": "bookings.tasks.send_one_week_reminders",
+        "schedule": crontab(hour=9, minute=0),
+    },
+
+    "two-day-reminders": {
+        "task": "bookings.tasks.send_two_day_reminders",
+        "schedule": crontab(hour=9, minute=5),
+    },
+
+    "two-hour-reminders": {
+        "task": "bookings.tasks.send_two_hour_reminders",
+        "schedule": crontab(minute="*/30"),
+    },
+}
+
+
+# ============================================
+# DJANGO CHANNELS (WebSocket) CONFIGURATION
+# ============================================
+
+# This tells Django to use Channels ASGI app
+# instead of the normal WSGI app for handling requests
+ASGI_APPLICATION = 'staylinkproject.asgi.application'
+
+# Channel layers use Redis as a message broker
+# between WebSocket connections.
+# Same Redis instance that Celery already uses.
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)],
+        },
+    },
 }

@@ -4,12 +4,11 @@ from ..models import (
     Property,
     PropertyAvailability,
 )
-from traveler.models import(
-    Booking
-)
+from bookings.models import Booking
 
 from owner.serializers.calendar_serializers import (
     PropertyAvailabilitySerializer,
+    OwnerBookingSerializer,
 )
 
 
@@ -39,12 +38,17 @@ class OwnerCalendarService:
             property=property_obj,
             is_available=False
         )
+        
 
         bookings = Booking.objects.filter(
-            property=property_obj
+            property=property_obj,
+            status__in=[
+                "confirmed",
+                "completed"
+            ]
         )
 
-       
+        
 
         return {
 
@@ -58,7 +62,11 @@ class OwnerCalendarService:
                         many=True
                     ).data,
 
-             
+                "bookings":
+                    OwnerBookingSerializer(
+                        bookings,
+                        many=True
+                    ).data,
             }
         }
 
