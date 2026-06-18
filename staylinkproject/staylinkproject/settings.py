@@ -35,7 +35,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "True") == "True"
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "django",
+    "0.0.0.0",
+]
 
 # Application definition
 
@@ -58,7 +63,8 @@ INSTALLED_APPS = [
     'owner',
     'traveler',
     'bookings',
-    'payments'
+    'payments',
+    'broker',
 
 ]
 
@@ -213,11 +219,15 @@ EMAIL_HOST_PASSWORD = os.getenv(
 # CELERY CONFIGURATION
 # ============================================
 
-CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_BROKER_URL = os.getenv(
+    "CELERY_BROKER_URL",
+    "redis://127.0.0.1:6379/0"
+)
 
-# Result backend — stores task success/failure status
-# Using Redis database 1 (separate from broker on database 0)
-CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/1"
+CELERY_RESULT_BACKEND = os.getenv(
+    "CELERY_RESULT_BACKEND",
+    "redis://127.0.0.1:6379/1"
+)
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -250,18 +260,34 @@ RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
 
+# settings.py — ONE place for ALL scheduled tasks
 CELERY_BEAT_SCHEDULE = {
 
+    # ── OTP CLEANUP ──────────────────────────────────────
+    # Runs every 15 minutes
+    # Deletes expired EmailVerification rows
+    "cleanup-expired-otps": {
+        "task": "accounts.tasks.cleanup_expired_otps_task",
+        "schedule": crontab(minute="*/15"),
+    },
+
+    # ── BOOKING REMINDERS ─────────────────────────────────
+    # Runs daily at 9:00 AM IST
+    # Sends reminder to travelers with check-in in 7 days
     "one-week-reminders": {
         "task": "bookings.tasks.send_one_week_reminders",
         "schedule": crontab(hour=9, minute=0),
     },
 
+    # Runs daily at 9:05 AM IST
+    # Sends reminder to travelers with check-in in 2 days
     "two-day-reminders": {
         "task": "bookings.tasks.send_two_day_reminders",
         "schedule": crontab(hour=9, minute=5),
     },
 
+    # Runs every 30 minutes
+    # Sends reminder to travelers checking in within 2 hours
     "two-hour-reminders": {
         "task": "bookings.tasks.send_two_hour_reminders",
         "schedule": crontab(minute="*/30"),
@@ -280,11 +306,21 @@ ASGI_APPLICATION = 'staylinkproject.asgi.application'
 # Channel layers use Redis as a message broker
 # between WebSocket connections.
 # Same Redis instance that Celery already uses.
+REDIS_HOST = os.getenv(
+    "REDIS_HOST",
+    "127.0.0.1"
+)
+
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [('127.0.0.1', 6379)],
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [
+                (
+                    REDIS_HOST,
+                    6379
+                )
+            ],
         },
     },
 }

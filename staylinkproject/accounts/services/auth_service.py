@@ -8,9 +8,6 @@ from accounts.services.email_verification_service import (
     create_email_verification
 )
 
-# REMOVED: from accounts.utils.email_service import send_verification_code_email
-# Email sending is now handled by Celery tasks — no direct imports needed here
-
 
 def register_user(serializer):
 

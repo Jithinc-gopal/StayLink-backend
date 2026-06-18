@@ -2,6 +2,9 @@ import logging
 from celery import shared_task
 from datetime import timedelta, datetime
 from django.utils import timezone
+from .models import Booking
+from .models import Booking
+from .utils.email_service import send_booking_reminder_email
 
 logger = logging.getLogger(__name__)
 
@@ -10,14 +13,26 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def expire_booking_hold(booking_id):
-    from .models import Booking
+
+   
+
     try:
-        booking = Booking.objects.get(id=booking_id)
+        booking = Booking.objects.get(
+            id=booking_id
+        )
+
     except Booking.DoesNotExist:
         return
-    if booking.status == 'hold':
-        booking.status = 'cancelled'
-        booking.save()
+
+    if (
+        booking.status == "hold"
+        and booking.expires_at
+        and booking.expires_at <= timezone.now()
+    ):
+        booking.status = "cancelled"
+        booking.save(
+            update_fields=["status"]
+        )
 
 
 # ── NEW TASK 1 — Confirmation email ──────────────────────────────────────────
@@ -81,10 +96,10 @@ def send_one_week_reminders():
     )
 
     bookings = Booking.objects.filter(
-        status="confirmed",
-        check_in=target_date,
-        one_week_reminder_sent=False
-    )
+    status="confirmed",
+    check_in=target_date,
+    one_week_reminder_sent=False
+    ).select_related("traveler", "property")
 
     for booking in bookings:
 
@@ -109,10 +124,10 @@ def send_two_day_reminders():
     )
 
     bookings = Booking.objects.filter(
-        status="confirmed",
-        check_in=target_date,
-        two_day_reminder_sent=False
-    )
+    status="confirmed",
+    check_in=target_date,
+    two_day_reminder_sent=False
+    ).select_related("traveler", "property")
 
     for booking in bookings:
 
@@ -135,10 +150,15 @@ def send_two_hour_reminders():
 
     now = timezone.localtime()
 
+    # FIXED: was check_in=target_date which caused NameError
+    # target_date variable doesn't exist in this function
+    # It only exists in one_week and two_day reminder functions
+    # Two-hour reminder only needs TODAY's bookings
     bookings = Booking.objects.filter(
         status="confirmed",
+        check_in=timezone.localdate(),
         two_hour_reminder_sent=False
-    )
+    ).select_related("traveler", "property")
 
     for booking in bookings:
 
@@ -149,9 +169,7 @@ def send_two_hour_reminders():
             )
         )
 
-        diff = (
-            checkin_datetime - now
-        ).total_seconds()
+        diff = (checkin_datetime - now).total_seconds()
 
         if 7200 <= diff <= 10800:
 

@@ -1,21 +1,37 @@
+# Virtual environments
+staylinkenv/
+aivenv/
+venv/
+.env
+
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
 
-# Virtual Environment
-staylinkenv/
+# Django
+db.sqlite3
+media/
+staticfiles/
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
 
-# Environment Variables
-.env
+# Env files
+staylinkproject/.env
+ai_service/.env
+
+# AI / Chroma
+ai_service/chroma_db/
+
+# Docker/cache
+*.log
 
 # VS Code
 .vscode/
 
-# Media
-media/
-
-# Static Files
-staticfiles/
-
-# Database
-db.sqlite3
+# OS
+.DS_Store
+Thumbs.db

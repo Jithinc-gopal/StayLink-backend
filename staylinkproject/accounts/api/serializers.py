@@ -116,7 +116,6 @@ class PartnerRegisterSerializer(serializers.ModelSerializer):
 
 
 
-
 class OwnerProfileSerializer(serializers.ModelSerializer):
 
     user = serializers.SerializerMethodField()
@@ -166,8 +165,6 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
         }
         
         
-        
-
 
 class BrokerProfileSerializer(serializers.ModelSerializer):
     class Meta:

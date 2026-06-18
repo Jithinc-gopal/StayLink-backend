@@ -6,6 +6,8 @@ from rest_framework import status
 from owner.models import Property
 from .models import Conversation
 from .serializers import ConversationSerializer
+from .models import Message
+from .serializers import MessageSerializer
 
 
 
@@ -137,4 +139,49 @@ class PropertyConversationsView(APIView):
                 "updated_at": conv.created_at
             })
 
-        return Response(data)          
+        return Response(data)   
+    
+    
+class ConversationHistoryView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, conversation_id):
+
+        try:
+            conversation = Conversation.objects.get(
+                id=conversation_id
+            )
+
+        except Conversation.DoesNotExist:
+
+            return Response(
+                {"error": "Conversation not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if request.user not in [
+            conversation.owner,
+            conversation.traveler
+        ]:
+            return Response(
+                {"error": "Not allowed"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        messages = Message.objects.filter(
+            conversation=conversation
+        ).order_by("created_at")
+
+        serializer = MessageSerializer(
+            messages,
+            many=True
+        )
+
+        return Response({
+            "messages": serializer.data
+        })        
+        
+        
+        
+           

@@ -10,8 +10,7 @@ from django.utils.encoding import (
 from django.conf import settings
 from accounts.models import CustomUser
 
-# REMOVED: from django.core.mail import send_mail
-# Email sending moved to Celery task — send_mail runs inside the worker now
+
 
 token_generator = PasswordResetTokenGenerator()
 

@@ -19,7 +19,8 @@ from owner.services.property_service import (
 
 class PropertyView(APIView):
 
-    permission_classes = [IsAuthenticated,IsVerifiedOwner,IsOwner]
+   
+    permission_classes = [IsAuthenticated, IsOwner, IsVerifiedOwner]
     parser_classes = [MultiPartParser,FormParser]
 
 
@@ -135,7 +136,7 @@ class PropertyView(APIView):
                 "message":
                 "Property deleted successfully"
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_204_NO_CONTENT
         )
 
 
@@ -261,7 +262,7 @@ class PropertyImageView(APIView):
                     "message":
                     "Image deleted successfully"
                 },
-                status=status.HTTP_200_OK
+                status=status.HTTP_204_NO_CONTENT
             )
 
         except Exception as e:
@@ -294,3 +295,67 @@ class AmenityListView(APIView):
         )
 
         return Response(serializer.data)
+    
+    
+    
+    
+class PublicPropertyListView(APIView):
+    """
+    Public endpoint — no authentication needed.
+    The FastAPI AI service calls this to get all active properties.
+    Includes property details, amenities, and average rating.
+    """
+    permission_classes = []  # no auth — AI service needs open access
+
+    def get(self, request):
+        from traveler.models import Review
+        from django.db.models import Avg
+
+        properties = Property.objects.filter(
+            status="active",
+            is_available=True
+        ).prefetch_related(
+            "images",
+            "property_amenities__amenity",
+            "reviews"
+        )
+
+        data = []
+        for p in properties:
+
+            # Get all amenity names for this property
+            amenities = [
+                pa.amenity.name
+                for pa in p.property_amenities.all()
+            ]
+
+            # Get average rating from reviews
+            avg_rating = p.reviews.aggregate(
+                avg=Avg("rating")
+            )["avg"]
+
+            data.append({
+                "id": p.pk,
+                "title": p.title,
+                "description": p.description,
+                "property_type": p.property_type,
+                "price": str(p.price),
+                "price_unit": p.price_unit,
+                "city": p.city,
+                "state": p.state,
+                "address": p.address,
+                "bedrooms": p.bedrooms,
+                "bathrooms": p.bathrooms,
+                "max_guest": p.max_guest,
+                "is_furnished": p.is_furnished,
+                "ambience": p.ambience or "",
+                "nearby_facilities": p.nearby_facilities,
+                "rules": p.rules,
+                "cancellation_policy": p.cancellation_policy,
+                "amenities": amenities,
+                "avg_rating": round(avg_rating, 1) if avg_rating else None,
+                "latitude": str(p.latitude) if p.latitude else None,
+                "longitude": str(p.longitude) if p.longitude else None,
+            })
+
+        return Response(data)    

@@ -59,7 +59,6 @@ class RegisterAPIView(APIView):
 
 
 
-
 class VerifyCodeAPIView(APIView):
 
     permission_classes = [AllowAny]
@@ -90,6 +89,7 @@ class VerifyCodeAPIView(APIView):
                 },
                 status=400
             )
+
 
 
 class PartnerRegisterAPIView(APIView):
@@ -137,8 +137,6 @@ class LogoutAPIView(APIView):
             return Response({"message": "Logout successful"}, status=205)
         except:
             return Response({"error": "Invalid token"}, status=400)
-
-
 
 
 
@@ -224,9 +222,7 @@ class OwnerProfileCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
-    
-    
-  
+     
   
 class BrokerProfileCreateView(APIView):
 
@@ -340,8 +336,6 @@ class BrokerProfileCreateView(APIView):
             )
     
     
-    
-
 
 @api_view(['POST'])
 def google_login(request):

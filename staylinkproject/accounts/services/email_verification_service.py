@@ -1,18 +1,12 @@
 import random
-
 from django.utils import timezone
-
 from rest_framework_simplejwt.tokens import (
     RefreshToken
 )
-
 from accounts.models import (
     CustomUser,
     EmailVerification
 )
-
-# REMOVED: from accounts.utils.email_service import send_registration_email
-# That import is no longer needed here — the task imports it internally
 
 
 # =========================

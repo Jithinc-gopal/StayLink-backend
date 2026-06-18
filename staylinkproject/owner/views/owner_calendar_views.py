@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from owner.permissions import IsOwner, IsVerifiedOwner
 from owner.services.owner_calendar_service import (
     OwnerCalendarService,
 
@@ -12,7 +13,7 @@ from owner.serializers.calendar_serializers import (
 
 class OwnerPropertyCalendarAPIView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner, IsVerifiedOwner]
 
     def get(self, request, property_id):
 
@@ -38,7 +39,7 @@ class OwnerPropertyCalendarAPIView(APIView):
 
 class BlockPropertyDatesAPIView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner, IsVerifiedOwner]
 
     def post(self, request):
 
@@ -75,7 +76,7 @@ class BlockPropertyDatesAPIView(APIView):
         
 class UpdateBlockedDateAPIView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner, IsVerifiedOwner]
 
     def put(self, request):
 
@@ -108,7 +109,7 @@ class UpdateBlockedDateAPIView(APIView):
 
 class UnblockDateAPIView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner, IsVerifiedOwner]
 
     def delete(self, request):
 

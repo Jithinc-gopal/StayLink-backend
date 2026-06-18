@@ -4,6 +4,7 @@ from owner.views.property_views import (
     AmenityListView,
     PropertyView,
     PropertyImageView,
+    PublicPropertyListView
 )
 
 from owner.views.owner_calendar_views import (
@@ -11,6 +12,7 @@ from owner.views.owner_calendar_views import (
     BlockPropertyDatesAPIView,
     UpdateBlockedDateAPIView,
     UnblockDateAPIView,
+    
 )
 
 urlpatterns = [
@@ -82,4 +84,10 @@ urlpatterns = [
         "properties/blocked-dates/unblock/",
         UnblockDateAPIView.as_view()
     ),
+    
+    path(
+    "public/properties/",
+    PublicPropertyListView.as_view(),
+    name="public-properties"
+),
 ]

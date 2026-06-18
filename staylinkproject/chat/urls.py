@@ -2,7 +2,9 @@ from django.urls import path
 from .views import (
     StartConversationView,
     ConversationDetailView,
-    PropertyConversationsView
+    PropertyConversationsView,
+    ConversationHistoryView
+
     
 )
 
@@ -21,5 +23,10 @@ urlpatterns = [
     path(
     "property/<int:property_id>/conversations/",
     PropertyConversationsView.as_view()
-    )
+    ),
+    
+    path(
+    "conversation/<int:conversation_id>/history/",
+    ConversationHistoryView.as_view()
+    ),
 ]
