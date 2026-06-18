@@ -72,7 +72,7 @@ services:
     container_name: staylink_celery_beat
     command: >
       sh -c "python wait_for_db.py &&
-             celery -A staylinkproject beat --loglevel=info"
+             celery -A staylinkproject beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     volumes:
       - ./staylinkproject:/app
     env_file:
