@@ -1,6 +1,7 @@
 from django.db import models
 from accounts.models import CustomUser
 from owner.models import Property
+from bookings.models import Booking
 
 
 
@@ -133,7 +134,15 @@ class Wishlist(models.Model):
         
         
         
+    
 class Review(models.Model):
+
+    booking = models.ForeignKey(
+        Booking,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
 
     user = models.ForeignKey(
         CustomUser,
@@ -147,9 +156,12 @@ class Review(models.Model):
     )
 
     rating = models.IntegerField()
+
     comment = models.TextField()
 
-    created_at = models.DateTimeField(auto_now_add=True)        
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )         
 
 
 

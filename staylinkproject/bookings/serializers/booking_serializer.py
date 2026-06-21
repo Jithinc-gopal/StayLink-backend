@@ -32,13 +32,46 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         return data
 
 
+
+
+
 class BookingDetailSerializer(serializers.ModelSerializer):
-    """
-    Full booking info returned to frontend after creation.
-    """
-    property_title = serializers.CharField(source='property.title', read_only=True)
-    property_location = serializers.CharField(source='property.location', read_only=True)
+    property_title = serializers.CharField(source="property.title", read_only=True)
+    property_location = serializers.SerializerMethodField()
+    property_id = serializers.IntegerField(source="property.id", read_only=True)
+    property_city = serializers.CharField(source="property.city", read_only=True)
+    property_state = serializers.CharField(source="property.state", read_only=True)
+    property_price = serializers.CharField(source="property.price", read_only=True)
+    property_image = serializers.SerializerMethodField()
+
+    has_review = serializers.SerializerMethodField()
+    can_review = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
-        fields = '__all__'
+        fields = "__all__"
+
+    def get_property_location(self, obj):
+        return f"{obj.property.city}, {obj.property.state}"
+
+    def get_property_image(self, obj):
+        request = self.context.get("request")
+        image = obj.property.images.first()
+
+        if image and image.image:
+            if request:
+                return request.build_absolute_uri(image.image.url)
+            return image.image.url
+
+        return None
+
+    def get_has_review(self, obj):
+        return hasattr(obj, "review")
+
+    def get_can_review(self, obj):
+        return (
+            obj.status == "completed"
+            and obj.payment_status == "full_paid"
+            and obj.review_request_sent is True
+            and not hasattr(obj, "review")
+        )

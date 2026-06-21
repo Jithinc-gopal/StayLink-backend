@@ -1,82 +1,145 @@
-# broker/urls.py
 from django.urls import path
-from broker.views.dashboard_views import (
-    BrokerDashboardStatsView,
-    BrokerProfileEditView,
-)
+
+from broker.views.dashboard_views import BrokerDashboardStatsView
+from broker.views.profile_views import BrokerProfileView
+
 from broker.views.connection_views import (
     BrokerConnectionListView,
     BrokerConnectionDetailView,
     ConnectionRequestResponseView,
     PublicBrokerListView,
-    PublicBrokerDetailView,
 )
+
 from broker.views.review_views import BrokerReviewView
 
+from broker.views.property_views import (
+    BrokerUnlistedPropertyListView,
+    BrokerUnlistedPropertyDetailView,
+    BrokerBookingRecordListView,
+    BrokerBookingRecordDetailView,
+)
+
+from broker.views.note_views import (
+    BrokerNoteListView,
+    BrokerNoteDetailView,
+    BrokerNoteTogglePinView,
+)
+
+from broker.views.notification_views import (
+    BrokerNotificationListView,
+    BrokerNotificationMarkReadView,
+    BrokerNotificationMarkAllReadView,
+)
+
+
 urlpatterns = [
-
-    # ── DASHBOARD ──────────────────────────────
-    # GET /api/broker/dashboard/stats/
+    # DASHBOARD
     path(
-        'dashboard/stats/',
+        "dashboard/stats/",
         BrokerDashboardStatsView.as_view(),
-        name='broker-dashboard-stats'
+        name="broker-dashboard-stats",
     ),
 
-    # ── PROFILE ────────────────────────────────
-    # GET/PUT /api/broker/profile/
+    # PROFILE
     path(
-        'profile/',
-        BrokerProfileEditView.as_view(),
-        name='broker-profile'
+        "profile/",
+        BrokerProfileView.as_view(),
+        name="broker-profile",
     ),
 
-    # ── CONNECTIONS ────────────────────────────
-    # GET/POST /api/broker/connections/
+    # CONNECTIONS
     path(
-        'connections/',
+        "connections/",
         BrokerConnectionListView.as_view(),
-        name='broker-connections'
+        name="broker-connections",
     ),
-
-    # DELETE /api/broker/connections/<pk>/
     path(
-        'connections/<int:pk>/',
+        "connections/<int:pk>/",
         BrokerConnectionDetailView.as_view(),
-        name='broker-connection-detail'
+        name="broker-connection-detail",
     ),
 
-    # GET /api/broker/connection-requests/
-    # PUT /api/broker/connection-requests/<pk>/
+    # INCOMING CONNECTION REQUESTS
     path(
-        'connection-requests/',
+        "connection-requests/",
         ConnectionRequestResponseView.as_view(),
-        name='connection-requests'
+        name="broker-connection-requests",
     ),
     path(
-        'connection-requests/<int:pk>/',
+        "connection-requests/<int:pk>/",
         ConnectionRequestResponseView.as_view(),
-        name='connection-request-detail'
+        name="broker-connection-request-detail",
     ),
 
-    # ── REVIEWS ────────────────────────────────
-    # GET/POST /api/broker/<broker_id>/reviews/
+    # PUBLIC BROKER LIST
     path(
-        '<int:broker_id>/reviews/',
-        BrokerReviewView.as_view(),
-        name='broker-reviews'
-    ),
-
-    # ── PUBLIC ─────────────────────────────────
-    # GET /api/broker/list/
-    path(
-        'list/',
+        "list/",
         PublicBrokerListView.as_view(),
-        name='broker-list'
+        name="public-broker-list",
+    ),
+
+    # REVIEWS
+    path(
+        "<int:broker_id>/reviews/",
+        BrokerReviewView.as_view(),
+        name="broker-reviews",
+    ),
+
+    # UNLISTED PROPERTIES
+    path(
+        "properties/",
+        BrokerUnlistedPropertyListView.as_view(),
+        name="broker-unlisted-properties",
     ),
     path(
-        'detail/<int:pk>/',
-        PublicBrokerDetailView.as_view(),
-        name='broker-detail'
+        "properties/<int:pk>/",
+        BrokerUnlistedPropertyDetailView.as_view(),
+        name="broker-unlisted-property-detail",
+    ),
+
+    # BOOKING RECORDS
+    path(
+        "booking-records/",
+        BrokerBookingRecordListView.as_view(),
+        name="broker-booking-records",
+    ),
+    path(
+        "booking-records/<int:pk>/",
+        BrokerBookingRecordDetailView.as_view(),
+        name="broker-booking-record-detail",
+    ),
+
+    # NOTES
+    path(
+        "notes/",
+        BrokerNoteListView.as_view(),
+        name="broker-notes",
+    ),
+    path(
+        "notes/<int:pk>/",
+        BrokerNoteDetailView.as_view(),
+        name="broker-note-detail",
+    ),
+    path(
+        "notes/<int:pk>/toggle-pin/",
+        BrokerNoteTogglePinView.as_view(),
+        name="broker-note-toggle-pin",
+    ),
+
+    # NOTIFICATIONS
+    path(
+        "notifications/",
+        BrokerNotificationListView.as_view(),
+        name="broker-notifications",
+    ),
+    path(
+        "notifications/<int:pk>/read/",
+        BrokerNotificationMarkReadView.as_view(),
+        name="broker-notification-read",
+    ),
+    path(
+        "notifications/mark-all-read/",
+        BrokerNotificationMarkAllReadView.as_view(),
+        name="broker-notifications-mark-all-read",
     ),
 ]

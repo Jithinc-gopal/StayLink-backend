@@ -218,7 +218,8 @@ class TravelerBookingsListView(APIView):
 
         serializer = BookingDetailSerializer(
             bookings,
-            many=True
+            many=True,
+            context={"request": request}
         )
 
         return Response(

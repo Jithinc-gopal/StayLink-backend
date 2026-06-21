@@ -6,23 +6,30 @@ from django.urls import (
 urlpatterns = [
 
     path(
-        'search/',
+        "search/",
         include(
-            'traveler.urls.search_urls'
+            "traveler.urls.search_urls"
         )
     ),
 
     path(
-        'profile/',
+        "profile/",
         include(
-            'traveler.urls.profile_urls'
+            "traveler.urls.profile_urls"
         )
     ),
 
     path(
-        '',
+        "",
         include(
-            'traveler.urls.property_urls'
+            "traveler.urls.property_urls"
+        )
+    ),
+
+    path(
+        "",
+        include(
+            "traveler.urls.review_urls"
         )
     ),
 ]

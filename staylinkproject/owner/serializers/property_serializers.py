@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.db.models import Avg
+
 from ..models import (
     Property,
     PropertyImage,
@@ -7,23 +9,24 @@ from ..models import (
 )
 
 
-
 class PropertyImageSerializer(serializers.ModelSerializer):
 
     image = serializers.SerializerMethodField()
 
     class Meta:
         model = PropertyImage
-        fields = ["id","image","property","created_at"]
+        fields = [
+            "id",
+            "image",
+            "property",
+            "created_at",
+        ]
 
     def get_image(self, obj):
-
         request = self.context.get("request")
 
         if obj.image:
-
             if request:
-
                 return request.build_absolute_uri(
                     obj.image.url
                 )
@@ -33,13 +36,14 @@ class PropertyImageSerializer(serializers.ModelSerializer):
         return None
 
 
-
 class AmenitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Amenity
-        fields = ["id", "name"]
-
+        fields = [
+            "id",
+            "name",
+        ]
 
 
 class PropertySerializer(serializers.ModelSerializer):
@@ -58,40 +62,41 @@ class PropertySerializer(serializers.ModelSerializer):
 
     property_amenities = serializers.SerializerMethodField()
 
+    avg_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+
     class Meta:
-
         model = Property
-
         fields = "__all__"
 
         read_only_fields = [
             "owner",
             "status",
-            "admin_note"
+            "admin_note",
         ]
 
-    # =========================
-    # GET AMENITIES
-    # =========================
-
     def get_property_amenities(self, obj):
-
         amenities = obj.property_amenities.all()
 
         return [
             {
                 "id": item.amenity.id,
-                "name": item.amenity.name
+                "name": item.amenity.name,
             }
             for item in amenities
         ]
 
-    # =========================
-    # VALIDATIONS
-    # =========================
+    def get_avg_rating(self, obj):
+        avg = obj.reviews.aggregate(
+            avg=Avg("rating")
+        )["avg"]
+
+        return round(avg, 1) if avg else 0
+
+    def get_review_count(self, obj):
+        return obj.reviews.count()
 
     def validate_price(self, value):
-
         if value <= 0:
             raise serializers.ValidationError(
                 "Price must be greater than 0"
@@ -100,7 +105,6 @@ class PropertySerializer(serializers.ModelSerializer):
         return value
 
     def validate_max_guest(self, value):
-
         if value <= 0:
             raise serializers.ValidationError(
                 "Max guest must be greater than 0"
@@ -109,9 +113,7 @@ class PropertySerializer(serializers.ModelSerializer):
         return value
 
     def validate_privacy_level(self, value):
-
         if not (1 <= value <= 5):
-
             raise serializers.ValidationError(
                 "Privacy level must be between 1 and 5"
             )
@@ -119,9 +121,7 @@ class PropertySerializer(serializers.ModelSerializer):
         return value
 
     def validate_advance_percentage(self, value):
-
         if value > 100:
-
             raise serializers.ValidationError(
                 "Advance percentage cannot exceed 100"
             )
@@ -129,21 +129,15 @@ class PropertySerializer(serializers.ModelSerializer):
         return value
 
     def validate_management_phone(self, value):
-
         if value and len(value) < 10:
-
             raise serializers.ValidationError(
                 "Invalid phone number"
             )
 
         return value
-   
-   
-    
-    
-class PropertyDetailSerializer(
-    serializers.ModelSerializer
-):
+
+
+class PropertyDetailSerializer(serializers.ModelSerializer):
 
     images = PropertyImageSerializer(
         many=True,
@@ -152,75 +146,51 @@ class PropertyDetailSerializer(
 
     amenities = serializers.SerializerMethodField()
 
-    class Meta:
+    avg_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+    reviews = serializers.SerializerMethodField()
 
+    class Meta:
         model = Property
 
         fields = [
-
             "id",
-
             "title",
-
             "description",
-
             "property_type",
-
             "price",
-
             "price_unit",
-
             "address",
-
             "city",
-
             "state",
-
             "latitude",
-
             "longitude",
-
             "google_map_link",
-
             "bedrooms",
-
             "bathrooms",
-
             "max_guest",
-
             "is_furnished",
-
             "privacy_level",
-
             "ambience",
-
             "nearby_facilities",
-
             "extra_details",
-
             "rules",
-
             "cancellation_policy",
-
             "advance_percentage",
-
             "cancellation_days",
-
             "images",
-
             "amenities",
+            "avg_rating",
+            "review_count",
+            "reviews",
         ]
 
     def get_amenities(self, obj):
-
-        property_amenities = (
-            PropertyAmenity.objects.filter(
-                property=obj
-            )
+        property_amenities = PropertyAmenity.objects.filter(
+            property=obj
         )
 
         amenities = [
-
             item.amenity
             for item in property_amenities
         ]
@@ -228,5 +198,33 @@ class PropertyDetailSerializer(
         return AmenitySerializer(
             amenities,
             many=True
-        ).data    
-    
+        ).data
+
+    def get_avg_rating(self, obj):
+        avg = obj.reviews.aggregate(
+            avg=Avg("rating")
+        )["avg"]
+
+        return round(avg, 1) if avg else 0
+
+    def get_review_count(self, obj):
+        return obj.reviews.count()
+
+    def get_reviews(self, obj):
+        reviews = obj.reviews.select_related(
+            "user"
+        ).order_by("-created_at")
+
+        return [
+            {
+                "id": review.id,
+                "user_name": (
+                    review.user.first_name
+                    or review.user.email
+                ),
+                "rating": review.rating,
+                "comment": review.comment,
+                "created_at": review.created_at,
+            }
+            for review in reviews
+        ]

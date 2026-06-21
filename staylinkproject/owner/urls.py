@@ -12,7 +12,11 @@ from owner.views.owner_calendar_views import (
     BlockPropertyDatesAPIView,
     UpdateBlockedDateAPIView,
     UnblockDateAPIView,
-    
+)
+
+from owner.views.owner_booking_views import (
+    OwnerPropertyBookingsView,
+    CompleteBookingView,
 )
 
 urlpatterns = [
@@ -77,17 +81,39 @@ urlpatterns = [
 
     path(
         "properties/blocked-dates/update/",
-        UpdateBlockedDateAPIView.as_view()
+        UpdateBlockedDateAPIView.as_view(),
+        name="update-blocked-dates"
     ),
 
     path(
         "properties/blocked-dates/unblock/",
-        UnblockDateAPIView.as_view()
+        UnblockDateAPIView.as_view(),
+        name="unblock-dates"
     ),
-    
+
+    # =========================
+    # OWNER BOOKINGS
+    # =========================
+
     path(
-    "public/properties/",
-    PublicPropertyListView.as_view(),
-    name="public-properties"
-),
+        "properties/<int:property_id>/bookings/",
+        OwnerPropertyBookingsView.as_view(),
+        name="owner-property-bookings"
+    ),
+
+    path(
+        "bookings/<int:booking_id>/complete/",
+        CompleteBookingView.as_view(),
+        name="complete-booking"
+    ),
+
+    # =========================
+    # PUBLIC PROPERTIES
+    # =========================
+
+    path(
+        "public/properties/",
+        PublicPropertyListView.as_view(),
+        name="public-properties"
+    ),
 ]

@@ -20,6 +20,11 @@ class Booking(models.Model):
 
         ("completed", "Completed"),
     ]
+    
+    PAYMENT_STATUS_CHOICES = [
+        ("advance_paid", "Advance Paid"),
+        ("full_paid", "Full Paid"),
+    ]
 
     property = models.ForeignKey(
         Property,
@@ -65,6 +70,16 @@ class Booking(models.Model):
         max_length=30,
         choices=STATUS_CHOICES,
         default="hold"
+    )
+    
+    payment_status = models.CharField(
+        max_length=30,
+        choices=PAYMENT_STATUS_CHOICES,
+        default="advance_paid"
+    )
+
+    review_request_sent = models.BooleanField(
+        default=False
     )
 
     expires_at = models.DateTimeField(

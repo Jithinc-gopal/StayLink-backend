@@ -1,17 +1,28 @@
 # broker/serializers.py
 from rest_framework import serializers
-from .models import BrokerConnection, BrokerReview
+from .models import (
+    BrokerConnection,
+    BrokerReview,
+    BrokerUnlistedProperty,
+    BrokerBookingRecord,
+    BrokerNote,
+    BrokerNotification,
+)
 from accounts.models import BrokerProfile
 from django.contrib.auth import get_user_model
 
 CustomUser = get_user_model()
 
 
+# ============================================================
+# EXISTING SERIALIZERS — updated
+# ============================================================
+
 class BrokerProfilePublicSerializer(serializers.ModelSerializer):
     """
-    Used for the broker's PUBLIC profile page.
-    Shows info that travelers/owners can see.
-    Does NOT include sensitive fields like id_proof.
+    Shows broker profile info publicly.
+    Used on the public broker list and profile pages.
+    Does NOT include id_proof or private info.
     """
     first_name = serializers.CharField(
         source='user.first_name',
@@ -32,22 +43,22 @@ class BrokerProfilePublicSerializer(serializers.ModelSerializer):
     class Meta:
         model = BrokerProfile
         fields = [
-            "id",
-            "user",
-            "first_name",
-            "email",
-            "phone",
-            "city",
-            "district",
-            "state",
-            "agency_name",
-            "experience",
-            "license_number",
-            "profile_image",
-            "verification_status",
-            "total_reviews",
-            "average_rating",
-            "total_connections",
+            'id',
+            'first_name',
+            'user',
+            'email',
+            'phone',
+            'city',
+            'district',
+            'state',
+            'agency_name',
+            'experience',
+            'license_number',
+            'profile_image',
+            'verification_status',
+            'total_reviews',
+            'average_rating',
+            'total_connections',
         ]
 
     def get_total_reviews(self, obj):
@@ -68,8 +79,7 @@ class BrokerProfilePublicSerializer(serializers.ModelSerializer):
 
 class BrokerConnectionSerializer(serializers.ModelSerializer):
     """
-    Used to create and list broker connections.
-    Shows basic info about the connected user.
+    Handles creating and listing broker connections.
     """
     connected_user_name = serializers.CharField(
         source='connected_user.first_name',
@@ -126,3 +136,206 @@ class BrokerReviewSerializer(serializers.ModelSerializer):
                 "Rating must be between 1 and 5"
             )
         return value
+
+
+# ============================================================
+# NEW SERIALIZER 1 — BrokerUnlistedProperty
+# ============================================================
+
+class BrokerUnlistedPropertySerializer(serializers.ModelSerializer):
+    """
+    Full serializer for creating and updating unlisted properties.
+    Also includes booking_count for display in property list.
+    """
+    # Computed field — not stored in DB, calculated on the fly
+    booking_count = serializers.SerializerMethodField()
+    total_commission_earned = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BrokerUnlistedProperty
+        fields = [
+            'id',
+            'name',
+            'property_type',
+            'description',
+            'rules',
+            'address',
+            'city',
+            'district',
+            'state',
+            'price',
+            'price_unit',
+            'owner_name',
+            'owner_phone',
+            'owner_email',
+            'commission_percentage',
+            'private_notes',
+            'bedrooms',
+            'bathrooms',
+            'max_guests',
+            'is_active',
+            'booking_count',
+            'total_commission_earned',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['broker']
+
+    def get_booking_count(self, obj):
+        """Count total bookings for this property"""
+        return obj.booking_records.count()
+
+    def get_total_commission_earned(self, obj):
+        """Sum of commission from completed bookings"""
+        completed = obj.booking_records.filter(
+            status='completed',
+            commission_paid=True
+        )
+        total = sum(b.commission_amount for b in completed)
+        return str(total)
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                "Price must be greater than 0"
+            )
+        return value
+
+    def validate_commission_percentage(self, value):
+        if not 0 <= value <= 100:
+            raise serializers.ValidationError(
+                "Commission must be between 0 and 100"
+            )
+        return value
+
+
+# ============================================================
+# NEW SERIALIZER 2 — BrokerBookingRecord
+# ============================================================
+
+class BrokerBookingRecordSerializer(serializers.ModelSerializer):
+    """
+    For creating and listing manual booking records.
+    Includes unlisted property name for display.
+    Auto-calculates commission_amount if not provided.
+    """
+
+    property_name = serializers.CharField(
+        source="unlisted_property.name",
+        read_only=True
+    )
+
+    property_city = serializers.CharField(
+        source="unlisted_property.city",
+        read_only=True
+    )
+
+    nights = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = BrokerBookingRecord
+        fields = [
+            "id",
+            "unlisted_property",
+            "property_name",
+            "property_city",
+            "client_name",
+            "client_phone",
+            "client_email",
+            "check_in",
+            "check_out",
+            "nights",
+            "total_amount",
+            "commission_amount",
+            "commission_paid",
+            "status",
+            "notes",
+            "created_at",
+        ]
+
+        read_only_fields = [
+            "broker",
+            "commission_amount",
+        ]
+
+    def validate(self, attrs):
+        check_in = attrs.get("check_in")
+        check_out = attrs.get("check_out")
+
+        if check_in and check_out and check_out <= check_in:
+            raise serializers.ValidationError(
+                "Check-out must be after check-in"
+            )
+
+        return attrs
+
+    def create(self, validated_data):
+        unlisted_property = validated_data["unlisted_property"]
+        total = validated_data.get("total_amount", 0)
+        commission_pct = unlisted_property.commission_percentage
+
+        validated_data["commission_amount"] = (
+            total * commission_pct / 100
+        )
+
+        return super().create(validated_data)
+
+
+# ============================================================
+# NEW SERIALIZER 3 — BrokerNote
+# ============================================================
+
+class BrokerNoteSerializer(serializers.ModelSerializer):
+    """
+    For creating and listing broker's private notes.
+    Includes property name if note is linked to a property.
+    """
+    related_property_name = serializers.CharField(
+        source='related_property.name',
+        read_only=True,
+        allow_null=True
+    )
+
+    class Meta:
+        model = BrokerNote
+        fields = [
+            'id',
+            'title',
+            'content',
+            'category',
+            'related_property',
+            'related_property_name',
+            'is_pinned',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['broker']
+
+
+# ============================================================
+# NEW SERIALIZER 4 — BrokerNotification
+# ============================================================
+
+class BrokerNotificationSerializer(serializers.ModelSerializer):
+    """
+    For listing broker notifications.
+    Read-only — notifications are created by the system,
+    not by the broker directly.
+    """
+
+    class Meta:
+        model = BrokerNotification
+        fields = [
+            'id',
+            'notification_type',
+            'title',
+            'message',
+            'is_read',
+            'created_at',
+        ]
+        read_only_fields = [
+            'broker',
+            'notification_type',
+            'title',
+            'message',
+        ]

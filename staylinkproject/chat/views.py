@@ -8,6 +8,13 @@ from .models import Conversation
 from .serializers import ConversationSerializer
 from .models import Message
 from .serializers import MessageSerializer
+from broker.models import BrokerUnlistedProperty
+from accounts.models import BrokerProfile
+from .models import BrokerConversation, BrokerMessage
+from .serializers import BrokerConversationSerializer, BrokerMessageSerializer
+from django.contrib.auth import get_user_model
+
+CustomUser = get_user_model()
 
 
 
@@ -183,5 +190,137 @@ class ConversationHistoryView(APIView):
         })        
         
         
-        
+
+
+class StartBrokerConversationView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+
+        broker_user_id = request.data.get("broker_user_id")
+
+        if not broker_user_id:
+            return Response(
+                {"error": "broker_user_id is required"},
+                status=400
+            )
+
+        try:
+            broker_user = CustomUser.objects.get(
+                id=broker_user_id,
+                role="broker"
+            )
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": "Broker not found"},
+                status=404
+            )
+
+        if broker_user == request.user:
+            return Response(
+                {"error": "Cannot chat with yourself"},
+                status=400
+            )
+
+        conversation, created = BrokerConversation.objects.get_or_create(
+            broker=broker_user,
+            user=request.user
+        )
+
+        return Response({
+            "conversation_id": conversation.id
+        })
+
+
+class BrokerConversationDetailView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, conversation_id):
+
+        try:
+            conversation = BrokerConversation.objects.get(
+                id=conversation_id
+            )
+        except BrokerConversation.DoesNotExist:
+            return Response(
+                {"error": "Conversation not found"},
+                status=404
+            )
+
+        if request.user not in [
+            conversation.broker,
+            conversation.user
+        ]:
+            return Response(
+                {"error": "Not allowed"},
+                status=403
+            )
+
+        serializer = BrokerConversationSerializer(conversation)
+
+        return Response(serializer.data)
+
+
+class BrokerConversationHistoryView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, conversation_id):
+
+        try:
+            conversation = BrokerConversation.objects.get(
+                id=conversation_id
+            )
+        except BrokerConversation.DoesNotExist:
+            return Response(
+                {"error": "Conversation not found"},
+                status=404
+            )
+
+        if request.user not in [
+            conversation.broker,
+            conversation.user
+        ]:
+            return Response(
+                {"error": "Not allowed"},
+                status=403
+            )
+
+        messages = BrokerMessage.objects.filter(
+            conversation=conversation
+        )
+
+        serializer = BrokerMessageSerializer(
+            messages,
+            many=True
+        )
+
+        return Response({
+            "messages": serializer.data
+        })        
            
+           
+class BrokerConversationListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        conversations = BrokerConversation.objects.filter(
+            broker=request.user
+        ).order_by("-created_at")
+
+        data = []
+
+        for conv in conversations:
+            last_message = conv.messages.order_by("-created_at").first()
+
+            data.append({
+                "conversation_id": conv.id,
+                "user_name": conv.user.first_name or conv.user.email,
+                "user_email": conv.user.email,
+                "last_message": last_message.content if last_message else "",
+                "updated_at": last_message.created_at if last_message else conv.created_at,
+            })
+
+        return Response(data)           

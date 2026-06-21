@@ -1,5 +1,9 @@
 from django.urls import path
 from .views import (
+    BrokerConversationDetailView,
+    BrokerConversationHistoryView,
+    BrokerConversationListView,
+    StartBrokerConversationView,
     StartConversationView,
     ConversationDetailView,
     PropertyConversationsView,
@@ -7,6 +11,8 @@ from .views import (
 
     
 )
+
+
 
 urlpatterns = [
  
@@ -29,4 +35,26 @@ urlpatterns = [
     "conversation/<int:conversation_id>/history/",
     ConversationHistoryView.as_view()
     ),
+    
+    
+##broker urls
+    
+    path(
+    "broker/start/",
+    StartBrokerConversationView.as_view()
+    ),
+
+    path(
+    "broker/conversation/<int:conversation_id>/",
+    BrokerConversationDetailView.as_view()
+    ),
+
+    path(
+    "broker/conversation/<int:conversation_id>/history/",
+    BrokerConversationHistoryView.as_view()
+    ),
+    path(
+    "broker/conversations/",
+    BrokerConversationListView.as_view()
+),
 ]

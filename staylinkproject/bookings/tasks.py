@@ -180,3 +180,35 @@ def send_two_hour_reminders():
 
             booking.two_hour_reminder_sent = True
             booking.save()                
+            
+            
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=30,
+    queue="email_queue",
+    name="bookings.tasks.send_review_request_task",
+)
+def send_review_request_task(self, booking_id):
+
+    try:
+        from bookings.models import Booking
+        from bookings.utils.email_service import (
+            send_review_request_email
+        )
+
+        booking = Booking.objects.select_related(
+            "traveler",
+            "property"
+        ).get(id=booking_id)
+
+        send_review_request_email(booking)
+
+    except Booking.DoesNotExist:
+        return
+
+    except Exception as exc:
+        raise self.retry(
+            exc=exc,
+            countdown=30 * (self.request.retries + 1)
+        )            

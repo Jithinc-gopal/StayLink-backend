@@ -2,6 +2,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 
 
+
 # ================================================================
 # BOOKING EMAIL SERVICE
 #
@@ -532,3 +533,76 @@ def send_booking_reminder_email(booking, reminder_type):
     msg.attach_alternative(html_content, "text/html")
 
     msg.send()
+    
+    
+
+
+
+def send_review_request_email(booking):
+    traveler = booking.traveler
+    property_obj = booking.property
+
+    review_link = (
+        f"{settings.FRONTEND_URL}/traveler/bookings"
+    )
+
+    subject = f"How was your stay at {property_obj.title}?"
+
+    from_email = settings.EMAIL_HOST_USER
+    to = [traveler.email]
+
+    text_content = (
+        f"Hi {traveler.first_name or traveler.email},\n\n"
+        f"Hope you enjoyed your stay at {property_obj.title}.\n"
+        f"Please share your review here:\n{review_link}\n\n"
+        f"Thank you,\nStayLink Team"
+    )
+
+    html_content = f"""
+    <div style="font-family: Arial; line-height: 1.6;">
+        <h2>How was your stay?</h2>
+
+        <p>Hi {traveler.first_name or traveler.email},</p>
+
+        <p>
+            Hope you enjoyed your stay at
+            <strong>{property_obj.title}</strong>.
+        </p>
+
+        <p>
+            Your feedback helps future travelers choose better stays.
+        </p>
+
+        <a href="{review_link}"
+           style="
+             display:inline-block;
+             padding:12px 20px;
+             background:#0f172a;
+             color:white;
+             text-decoration:none;
+             border-radius:10px;
+             font-weight:bold;
+           ">
+            Write a Review
+        </a>
+
+        <p style="margin-top:20px;">
+            Thank you,<br/>
+            StayLink Team
+        </p>
+    </div>
+    """
+
+    email = EmailMultiAlternatives(
+        subject,
+        text_content,
+        from_email,
+        to
+    )
+
+    email.attach_alternative(
+        html_content,
+        "text/html"
+    )
+
+    email.send()    

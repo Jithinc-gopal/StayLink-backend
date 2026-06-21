@@ -75,3 +75,53 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.sender.email}: {self.content[:40]}"
+    
+
+class BrokerConversation(models.Model):
+
+    broker = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="broker_chat_conversations"
+    )
+
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="user_broker_chat_conversations"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("broker", "user")
+
+    def __str__(self):
+        return f"{self.broker.email} - {self.user.email}"
+
+
+class BrokerMessage(models.Model):
+
+    conversation = models.ForeignKey(
+        BrokerConversation,
+        on_delete=models.CASCADE,
+        related_name="messages"
+    )
+
+    sender = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="broker_chat_sent_messages"
+    )
+
+    content = models.TextField()
+
+    is_read = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.sender.email}: {self.content[:40]}"    

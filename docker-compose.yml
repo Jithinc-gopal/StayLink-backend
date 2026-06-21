@@ -39,6 +39,8 @@ services:
     volumes:
       - ./staylinkproject:/app
       - staylink_media:/app/media
+      - staylink_static:/app/staticfiles
+      
     ports:
       - "8000:8000"
     env_file:
@@ -100,3 +102,4 @@ services:
 volumes:
   staylink_postgres_data:
   staylink_media:
+  staylink_static:
