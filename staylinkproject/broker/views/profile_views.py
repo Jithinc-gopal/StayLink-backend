@@ -1,14 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-
+from accounts.permissions import IsBroker
 from accounts.api.serializers import BrokerProfileSerializer
 from broker.serializers import BrokerProfilePublicSerializer
 from broker.services.profile_service import BrokerProfileService
 
 
 class BrokerProfileView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsBroker]
 
     def get(self, request):
         result = BrokerProfileService.get_profile(request.user)

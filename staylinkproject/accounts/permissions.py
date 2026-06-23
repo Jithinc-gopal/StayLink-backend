@@ -1,13 +1,46 @@
 from rest_framework.permissions import BasePermission
 
+
 class IsOwner(BasePermission):
     def has_permission(self, request, view):
-        return request.user.role == 'owner'
+        return (
+            request.user.is_authenticated
+            and request.user.role == "owner"
+        )
+
 
 class IsBroker(BasePermission):
     def has_permission(self, request, view):
-        return request.user.role == 'broker'
+        return (
+            request.user.is_authenticated
+            and request.user.role == "broker"
+        )
+
 
 class IsAdmin(BasePermission):
     def has_permission(self, request, view):
-        return request.user.role == 'admin'
+        return (
+            request.user.is_authenticated
+            and request.user.role == "admin"
+        )
+
+
+class IsTraveler(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == "user"
+        )
+        
+        
+        
+
+
+class IsOwnerOrBroker(BasePermission):
+
+    def has_permission(self, request, view):
+
+        return (
+            request.user.is_authenticated
+            and request.user.role in ["owner", "broker"]
+        )        

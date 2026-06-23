@@ -3,6 +3,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
+from notifications.services import create_notification
 
 from .models import (
     Conversation,
@@ -163,11 +164,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
             id=self.conversation_id
         )
 
-        return Message.objects.create(
+        message = Message.objects.create(
             conversation=conversation,
             sender=self.user,
             content=content,
         )
+
+        # Owner sends message → notify traveler
+        if self.user.id == conversation.owner_id:
+            create_notification(
+                user=conversation.traveler,
+                title="New message from owner",
+                message=f"{conversation.owner.first_name or conversation.owner.email} replied about {conversation.property.title}",
+                notification_type="chat"
+            )
+
+        # Traveler sends message → notify owner
+        elif self.user.id == conversation.traveler_id:
+            create_notification(
+                user=conversation.owner,
+                title="New message from traveler",
+                message=f"{conversation.traveler.first_name or conversation.traveler.email} sent a message about {conversation.property.title}",
+                notification_type="chat"
+            )
+
+        return message
 
 
 # ============================================================
@@ -321,8 +342,28 @@ class BrokerChatConsumer(AsyncWebsocketConsumer):
             id=self.conversation_id
         )
 
-        return BrokerMessage.objects.create(
+        message = BrokerMessage.objects.create(
             conversation=conversation,
             sender=self.user,
             content=content,
         )
+
+        # Broker sends message → notify user/traveler
+        if self.user.id == conversation.broker_id:
+            create_notification(
+                user=conversation.user,
+                title="New message from broker",
+                message=f"{conversation.broker.first_name or conversation.broker.email} sent you a broker message",
+                notification_type="chat"
+            )
+
+        # User sends message → notify broker
+        elif self.user.id == conversation.user_id:
+            create_notification(
+                user=conversation.broker,
+                title="New message from traveler",
+                message=f"{conversation.user.first_name or conversation.user.email} sent you a broker chat message",
+                notification_type="chat"
+            )
+
+        return message

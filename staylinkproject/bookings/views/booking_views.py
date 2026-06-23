@@ -8,6 +8,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from accounts.permissions import IsTraveler
+from notifications.services import create_notification
 
 from ..models import Booking
 from bookings.serializers.booking_serializer import (
@@ -28,7 +30,7 @@ razorpay_client = razorpay.Client(
 
 class CreateBookingOrderView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTraveler]
 
     def post(self, request):
 
@@ -169,6 +171,26 @@ class CreateBookingOrderView(APIView):
             amount=advance_amount,
             status="created",
         )
+        
+        create_notification(
+            user=request.user,
+            title="Booking hold created",
+            message=(
+                f"Your booking hold for {property_obj.title} "
+                f"is active for 10 minutes. Complete payment to confirm."
+            ),
+            notification_type="booking"
+        )
+
+        create_notification(
+            user=property_obj.owner,
+            title="New booking hold",
+            message=(
+                f"{request.user.first_name or request.user.email} "
+                f"started a booking for {property_obj.title}."
+            ),
+            notification_type="booking"
+        )
 
         # =====================================================
         # RESPONSE
@@ -200,7 +222,7 @@ class CreateBookingOrderView(APIView):
 
 class TravelerBookingsListView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTraveler]
 
     def get(self, request):
 

@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'bookings',
     'payments',
     'broker',
+    'notifications',
 
 ]
 

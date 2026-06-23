@@ -1,5 +1,4 @@
 # ai_service/rag.py
-
 import requests
 import os
 from dotenv import load_dotenv
@@ -13,18 +12,7 @@ DJANGO_API_BASE_URL = os.getenv("DJANGO_API_BASE_URL")
 
 
 def get_embeddings():
-    """
-    Creates a FREE local embedding model using HuggingFace.
-    
-    What are embeddings?
-    They convert text into numbers so ChromaDB can do
-    similarity search. 
-    
-    'all-MiniLM-L6-v2' is a small, fast model that runs
-    on your CPU — no API key, no cost, no internet needed.
-    First time it runs, it downloads ~90MB model file.
-    After that it's instant.
-    """
+   
     return HuggingFaceEmbeddings(
         model_name="all-MiniLM-L6-v2",
         model_kwargs={"device": "cpu"}

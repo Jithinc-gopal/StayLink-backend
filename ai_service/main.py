@@ -1,6 +1,5 @@
 # ai_service/main.py
 # The FastAPI server — this is what runs and accepts HTTP requests
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel

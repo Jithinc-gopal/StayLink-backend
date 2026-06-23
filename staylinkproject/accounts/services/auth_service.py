@@ -7,6 +7,7 @@ from django.conf import settings
 from accounts.services.email_verification_service import (
     create_email_verification
 )
+from accounts.utils.mfa import verify_mfa_code
 
 
 def register_user(serializer):
@@ -104,8 +105,25 @@ def register_user(serializer):
     }
 
 
-def login_user(email, password):
 
+def build_auth_response(user):
+    refresh = RefreshToken.for_user(user)
+
+    return {
+        "message": "Login successful",
+        "access_token": str(refresh.access_token),
+        "refresh_token": str(refresh),
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role,
+            "profile_completed": user.profile_completed,
+            "is_2fa_enabled": user.is_2fa_enabled,
+        }
+    }
+    
+    
+def login_user(email, password):
     user = authenticate(
         email=email,
         password=password
@@ -115,30 +133,40 @@ def login_user(email, password):
         raise Exception("Invalid credentials")
 
     if not user.is_active:
-        raise Exception(
-            "Please verify your email first"
-        )
+        raise Exception("Please verify your email first")
 
-    refresh = RefreshToken.for_user(user)
-
-    return {
-        "message": "Login successful",
-
-        "access_token": str(
-            refresh.access_token
-        ),
-
-        "refresh_token": str(
-            refresh
-        ),
-
-        "user": {
-            "id": user.id,
-            "email": user.email,
+    if (
+        user.role in ["owner", "broker"]
+        and user.is_2fa_enabled
+    ):
+        return {
+            "mfa_required": True,
+            "user_id": user.id,
             "role": user.role,
-            "profile_completed": user.profile_completed
+            "message": "MFA verification required"
         }
-    }
+
+    return build_auth_response(user)
+
+
+def verify_mfa_login(user_id, code):
+    try:
+        user = CustomUser.objects.get(id=user_id)
+    except CustomUser.DoesNotExist:
+        raise Exception("Invalid user")
+
+    if user.role not in ["owner", "broker"]:
+        raise Exception("MFA login is only for owner and broker")
+
+    if not user.is_2fa_enabled or not user.otp_secret:
+        raise Exception("MFA is not enabled")
+
+    if not verify_mfa_code(user.otp_secret, code):
+        raise Exception("Invalid MFA code")
+
+    return build_auth_response(user)
+
+
 
 
 def logout_user(refresh_token):
@@ -154,7 +182,7 @@ def google_auth(token):
         settings.GOOGLE_CLIENT_ID
     )
 
-    email = idinfo.get('email')
+    email = idinfo.get("email")
 
     if not email:
         raise Exception("Email not found")
@@ -166,15 +194,18 @@ def google_auth(token):
     if not user:
         raise Exception("Please register first")
 
-    refresh = RefreshToken.for_user(user)
+    if not user.is_active:
+        raise Exception("Please verify your email first")
 
-    return {
-        "access_token": str(refresh.access_token),
-        "refresh_token": str(refresh),
-        "user": {
-            "id": user.id,
-            "email": user.email,
+    if (
+        user.role in ["owner", "broker"]
+        and user.is_2fa_enabled
+    ):
+        return {
+            "mfa_required": True,
+            "user_id": user.id,
             "role": user.role,
-            "profile_completed": user.profile_completed
+            "message": "MFA verification required"
         }
-    }
+
+    return build_auth_response(user)

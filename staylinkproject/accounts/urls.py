@@ -7,6 +7,12 @@ from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
+from accounts.api.views import (
+    MFASetupView,
+    MFAVerifySetupView,
+    MFADisableView,
+    MFALoginVerifyAPIView
+)
 
 urlpatterns = [
     path('register/',views.RegisterAPIView.as_view(),name='register'),
@@ -20,7 +26,35 @@ urlpatterns = [
     path('reset-password/', views.ResetPasswordAPIView.as_view()),
     path("verify-code/",views.VerifyCodeAPIView.as_view()),  
     path("token/refresh/",TokenRefreshView.as_view(),name="token_refresh"),
-  
+    
+    # =====================================
+    # MFA
+    # =====================================
+
+    path(
+        "mfa/setup/",
+        MFASetupView.as_view(),
+        name="mfa-setup"
+    ),
+
+    path(
+        "mfa/verify-setup/",
+        MFAVerifySetupView.as_view(),
+        name="mfa-verify-setup"
+    ),
+
+    path(
+        "mfa/disable/",
+        MFADisableView.as_view(),
+        name="mfa-disable"
+    ),
+    
+    path(
+        "mfa/verify-login/",
+        MFALoginVerifyAPIView.as_view(),
+        name="mfa-verify-login"
+    ),
+    
 
 
 ] 

@@ -17,6 +17,7 @@ django_asgi_app = get_asgi_application()
 # Reason: they import Django models and need Django to be ready first
 from chat.middleware import JWTAuthMiddleware
 import chat.routing
+import notifications.routing
 
 application = ProtocolTypeRouter({
 
@@ -32,7 +33,8 @@ application = ProtocolTypeRouter({
     'websocket': AllowedHostsOriginValidator(
         JWTAuthMiddleware(
             URLRouter(
-                chat.routing.websocket_urlpatterns
+                chat.routing.websocket_urlpatterns +
+                notifications.routing.websocket_urlpatterns
             )
         )
     ),

@@ -1,7 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from owner.permissions import IsOwner, IsVerifiedOwner
+from owner.permissions import  IsVerifiedOwner
+from accounts.permissions import IsOwner
 from owner.services.owner_calendar_service import (
     OwnerCalendarService,
 

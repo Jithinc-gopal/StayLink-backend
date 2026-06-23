@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import (MultiPartParser,FormParser)
-from ..permissions import (IsOwner,IsVerifiedOwner)
+from ..permissions import (IsVerifiedOwner)
+from accounts.permissions import IsOwner
 from ..models import (Amenity,Property)
 from owner.serializers.property_serializers import (AmenitySerializer,PropertySerializer,PropertyImageSerializer)
 from owner.services.property_service import (

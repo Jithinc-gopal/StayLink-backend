@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 
 from owner.models import Property
 from .models import Conversation
@@ -12,6 +12,7 @@ from broker.models import BrokerUnlistedProperty
 from accounts.models import BrokerProfile
 from .models import BrokerConversation, BrokerMessage
 from .serializers import BrokerConversationSerializer, BrokerMessageSerializer
+from accounts.permissions import IsOwner, IsTraveler, IsBroker
 from django.contrib.auth import get_user_model
 
 CustomUser = get_user_model()
@@ -20,7 +21,7 @@ CustomUser = get_user_model()
 
 class StartConversationView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTraveler]
 
     def post(self, request):
 
@@ -60,8 +61,6 @@ class StartConversationView(APIView):
             "conversation_id": conversation.id
         })
         
-        
-
 
 
 class ConversationDetailView(APIView):
@@ -94,14 +93,11 @@ class ConversationDetailView(APIView):
 
         return Response(serializer.data)  
     
-    
-
-
 
 
 class PropertyConversationsView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOwner]
 
     def get(self, request, property_id):
 
@@ -149,6 +145,7 @@ class PropertyConversationsView(APIView):
         return Response(data)   
     
     
+    
 class ConversationHistoryView(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -194,7 +191,7 @@ class ConversationHistoryView(APIView):
 
 class StartBrokerConversationView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTraveler]
 
     def post(self, request):
 
@@ -303,7 +300,7 @@ class BrokerConversationHistoryView(APIView):
            
            
 class BrokerConversationListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsBroker]
 
     def get(self, request):
         conversations = BrokerConversation.objects.filter(

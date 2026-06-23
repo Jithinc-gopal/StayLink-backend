@@ -4,7 +4,7 @@ from owner.views.property_views import (
     AmenityListView,
     PropertyView,
     PropertyImageView,
-    PublicPropertyListView
+    PublicPropertyListView,
 )
 
 from owner.views.owner_calendar_views import (
@@ -17,14 +17,14 @@ from owner.views.owner_calendar_views import (
 from owner.views.owner_booking_views import (
     OwnerPropertyBookingsView,
     CompleteBookingView,
+    OwnerAllBookingsView,
+)
+from owner.views.owner_review_views import (
+    OwnerReviewsView
 )
 
 urlpatterns = [
-
-    # =========================
     # PROPERTY MANAGEMENT
-    # =========================
-
     path(
         "properties/",
         PropertyView.as_view(),
@@ -37,20 +37,14 @@ urlpatterns = [
         name="owner-property-detail"
     ),
 
-    # =========================
     # AMENITIES
-    # =========================
-
     path(
         "amenities/",
         AmenityListView.as_view(),
         name="amenities"
     ),
 
-    # =========================
     # PROPERTY IMAGES
-    # =========================
-
     path(
         "properties/<int:property_id>/images/",
         PropertyImageView.as_view(),
@@ -63,10 +57,7 @@ urlpatterns = [
         name="property-image-delete"
     ),
 
-    # =========================
     # OWNER CALENDAR
-    # =========================
-
     path(
         "properties/<int:property_id>/calendar/",
         OwnerPropertyCalendarAPIView.as_view(),
@@ -91,10 +82,13 @@ urlpatterns = [
         name="unblock-dates"
     ),
 
-    # =========================
     # OWNER BOOKINGS
-    # =========================
-
+    
+    path(
+        "bookings/",
+        OwnerAllBookingsView.as_view(),
+        name="owner-all-bookings"
+    ),
     path(
         "properties/<int:property_id>/bookings/",
         OwnerPropertyBookingsView.as_view(),
@@ -107,13 +101,16 @@ urlpatterns = [
         name="complete-booking"
     ),
 
-    # =========================
     # PUBLIC PROPERTIES
-    # =========================
-
     path(
         "public/properties/",
         PublicPropertyListView.as_view(),
         name="public-properties"
+    ),
+    
+    path(
+        "reviews/",
+        OwnerReviewsView.as_view(),
+        name="owner-reviews"
     ),
 ]

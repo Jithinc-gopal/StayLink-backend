@@ -15,8 +15,17 @@ from accounts.services.profile_service import create_owner_profile,get_owner_pro
 from accounts.services.profile_service import create_broker_profile, get_broker_profile,update_broker_profile
 from accounts.services.auth_service import google_auth
 from accounts.services.password_service import send_forgot_password_email, reset_password
+from accounts.permissions import IsOwnerOrBroker
+from accounts.services.auth_service import verify_mfa_login
+
 from accounts.services.email_verification_service import (
     verify_email_code
+)
+from accounts.utils.mfa import (
+    generate_mfa_secret,
+    generate_mfa_uri,
+    generate_qr_code_base64,
+    verify_mfa_code,
 )
 
 
@@ -124,6 +133,35 @@ class LoginAPIView(APIView):
             return Response(data)
         except Exception as e:
             return Response({"error": str(e)}, status=401)
+        
+        
+        
+class MFALoginVerifyAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            user_id = request.data.get("user_id")
+            code = request.data.get("code")
+
+            if not user_id or not code:
+                return Response(
+                    {"error": "user_id and code are required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            data = verify_mfa_login(
+                user_id=user_id,
+                code=code
+            )
+
+            return Response(data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )        
         
 
 
@@ -377,7 +415,6 @@ class ForgotPasswordAPIView(APIView):
 
 
 
-
 class ResetPasswordAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -391,3 +428,97 @@ class ResetPasswordAPIView(APIView):
             return Response(data)
         except Exception as e:
             return Response({"error": str(e)}, status=400)    
+        
+        
+        
+class MFASetupView(APIView):
+    permission_classes = [IsOwnerOrBroker]
+
+    def post(self, request):
+        user = request.user
+
+        if user.is_2fa_enabled:
+            return Response(
+                {"error": "MFA is already enabled."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        secret = generate_mfa_secret()
+
+        user.otp_secret = secret
+        user.save(update_fields=["otp_secret"])
+
+        uri = generate_mfa_uri(user, secret)
+        qr_code = generate_qr_code_base64(uri)
+
+        return Response(
+            {
+                "message": "Scan this QR code using your authenticator app.",
+                "qr_code": qr_code,
+                "secret": secret,
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class MFAVerifySetupView(APIView):
+    permission_classes = [IsOwnerOrBroker]
+
+    def post(self, request):
+        user = request.user
+        code = request.data.get("code")
+
+        if user.is_2fa_enabled:
+            return Response(
+                {"error": "MFA is already enabled."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not user.otp_secret:
+            return Response(
+                {"error": "Please start MFA setup first."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not verify_mfa_code(user.otp_secret, code):
+            return Response(
+                {"error": "Invalid MFA code."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.is_2fa_enabled = True
+        user.save(update_fields=["is_2fa_enabled"])
+
+        return Response(
+            {"message": "MFA enabled successfully."},
+            status=status.HTTP_200_OK
+        )
+
+
+class MFADisableView(APIView):
+    permission_classes = [IsOwnerOrBroker]
+
+    def post(self, request):
+        user = request.user
+        code = request.data.get("code")
+
+        if not user.is_2fa_enabled or not user.otp_secret:
+            return Response(
+                {"error": "MFA is not enabled."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not verify_mfa_code(user.otp_secret, code):
+            return Response(
+                {"error": "Invalid MFA code."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.is_2fa_enabled = False
+        user.otp_secret = None
+        user.save(update_fields=["is_2fa_enabled", "otp_secret"])
+
+        return Response(
+            {"message": "MFA disabled successfully."},
+            status=status.HTTP_200_OK
+        )    

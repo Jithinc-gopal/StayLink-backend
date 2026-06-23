@@ -1,13 +1,19 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 
+from accounts.permissions import IsTraveler
 from broker.serializers import BrokerReviewSerializer
 from broker.services import review_service
 
 
 class BrokerReviewView(APIView):
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsTraveler()]
+
+        return [AllowAny()]
 
     def get(self, request, broker_id):
         reviews = review_service.get_broker_reviews(

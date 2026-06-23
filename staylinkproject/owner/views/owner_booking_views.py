@@ -4,7 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from owner.permissions import IsOwner, IsVerifiedOwner
+from owner.permissions import  IsVerifiedOwner
+from accounts.permissions import IsOwner
 
 from bookings.models import Booking
 from bookings.tasks import send_review_request_task
@@ -13,6 +14,31 @@ from owner.serializers.owner_booking_serializer import (
     OwnerBookingDetailSerializer
 )
 
+
+
+class OwnerAllBookingsView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsOwner,
+        IsVerifiedOwner
+    ]
+
+    def get(self, request):
+
+        bookings = Booking.objects.filter(
+            property__owner=request.user
+        ).select_related(
+            "traveler",
+            "property"
+        ).order_by("-created_at")
+
+        serializer = OwnerBookingDetailSerializer(
+            bookings,
+            many=True
+        )
+
+        return Response(serializer.data)
 
 class OwnerPropertyBookingsView(APIView):
 

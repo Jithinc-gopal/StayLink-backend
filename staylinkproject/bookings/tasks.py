@@ -2,6 +2,8 @@ import logging
 from celery import shared_task
 from datetime import timedelta, datetime
 from django.utils import timezone
+
+from notifications.services import create_notification
 from .models import Booking
 from .models import Booking
 from .utils.email_service import send_booking_reminder_email
@@ -57,6 +59,16 @@ def send_booking_confirmation_task(self, booking_id: int):
         ).get(id=booking_id)
 
         send_booking_confirmation_email(booking)
+        
+        create_notification(
+            user=booking.traveler,
+            title="Booking Confirmed",
+            message=(
+                f"Your booking for {booking.property.title} "
+                f"has been confirmed successfully."
+            ),
+            notification_type="booking"
+        )
 
         logger.info(
             f"[EMAIL] Booking confirmation sent | booking_id={booking_id}"
@@ -108,6 +120,16 @@ def send_one_week_reminders():
             "one_week"
         )
 
+        create_notification(
+            user=booking.traveler,
+            title="Stay Reminder - 1 Week Left",
+            message=(
+                f"Your stay at {booking.property.title} "
+                f"starts in one week."
+            ),
+            notification_type="booking"
+        )
+
         booking.one_week_reminder_sent = True
         booking.save()
         
@@ -134,6 +156,16 @@ def send_two_day_reminders():
         send_booking_reminder_email(
             booking,
             "two_days"
+        )
+        
+        create_notification(
+            user=booking.traveler,
+            title="Stay Reminder - 2 Days Left",
+            message=(
+                f"Your stay at {booking.property.title} "
+                f"starts in 2 days."
+            ),
+            notification_type="booking"
         )
 
         booking.two_day_reminder_sent = True
@@ -176,6 +208,15 @@ def send_two_hour_reminders():
             send_booking_reminder_email(
                 booking,
                 "two_hours"
+            )
+            create_notification(
+                user=booking.traveler,
+                title="Check-in Reminder",
+                message=(
+                    f"Your check-in at {booking.property.title} "
+                    f"is within 2 hours."
+                ),
+                notification_type="booking"
             )
 
             booking.two_hour_reminder_sent = True
