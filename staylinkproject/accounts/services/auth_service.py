@@ -1,109 +1,69 @@
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from accounts.models import CustomUser
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from django.conf import settings
+
 from accounts.services.email_verification_service import (
     create_email_verification
 )
+
 from accounts.utils.mfa import verify_mfa_code
 
 
 def register_user(serializer):
-
-    email = serializer.validated_data.get(
-        "email"
-    )
+    email = serializer.validated_data.get("email")
 
     existing_user = CustomUser.objects.filter(
         email=email
     ).first()
 
-    # =========================
-    # EMAIL ALREADY VERIFIED
-    # =========================
+    if existing_user and existing_user.is_active:
+        raise Exception("Email already registered")
 
-    if (
-        existing_user and
-        existing_user.is_active
-    ):
-
-        raise Exception(
-            "Email already registered"
-        )
-
-    # =========================
-    # USER EXISTS BUT NOT VERIFIED
-    # =========================
-
-    if (
-        existing_user and
-        not existing_user.is_active
-    ):
-
-        # update user info
+    if existing_user and not existing_user.is_active:
         existing_user.first_name = (
-            serializer.validated_data.get(
-                "first_name"
-            )
+            serializer.validated_data.get("first_name")
         )
 
-        # update password
         existing_user.set_password(
-            serializer.validated_data.get(
-                "password"
-            )
+            serializer.validated_data.get("password")
         )
 
         existing_user.save()
 
-        # generate new OTP
-        code = create_email_verification(
-            existing_user
+        code = create_email_verification(existing_user)
+
+        from accounts.tasks import send_verification_code_task
+        send_verification_code_task.delay(
+            existing_user.id,
+            code
         )
 
-        # CHANGED: was send_verification_code_email(existing_user, code)
-        # .delay() pushes task to Redis and returns in ~1ms
-        # Celery worker picks it up and sends the email in background
-        from accounts.tasks import send_verification_code_task
-        send_verification_code_task.delay(existing_user.id, code)
-
         return {
-
             "message": (
                 "Account exists but not verified. "
                 "New verification code sent."
             ),
-
             "email": existing_user.email
         }
 
-    # =========================
-    # CREATE NEW USER
-    # =========================
-
-    user = serializer.save(
-        is_active=False
-    )
+    user = serializer.save(is_active=False)
 
     code = create_email_verification(user)
 
-    # CHANGED: was send_verification_code_email(user, code)
-    # Now a background task — API returns instantly after this line
     from accounts.tasks import send_verification_code_task
     send_verification_code_task.delay(user.id, code)
 
     return {
-
         "message": (
             "Registration successful. "
             "Please verify your email."
         ),
-
         "email": user.email
     }
-
 
 
 def build_auth_response(user):
@@ -116,13 +76,15 @@ def build_auth_response(user):
         "user": {
             "id": user.id,
             "email": user.email,
+            "first_name": user.first_name,
             "role": user.role,
             "profile_completed": user.profile_completed,
             "is_2fa_enabled": user.is_2fa_enabled,
+            "is_superuser": user.is_superuser,
         }
     }
-    
-    
+
+
 def login_user(email, password):
     user = authenticate(
         email=email,
@@ -135,6 +97,40 @@ def login_user(email, password):
     if not user.is_active:
         raise Exception("Please verify your email first")
 
+    # =========================
+    # ADMIN LOGIN FLOW
+    # =========================
+    if user.role == "admin":
+
+        if not user.is_active:
+            raise Exception("This admin account has been blocked")
+
+        # If admin MFA already enabled:
+        # Do NOT return token yet.
+        if user.is_2fa_enabled:
+            return {
+                "mfa_required": True,
+                "user_id": user.id,
+                "email": user.email,
+                "role": user.role,
+                "message": "Admin MFA verification required"
+            }
+
+        # First admin login:
+        # Return token only for MFA setup page.
+        auth_data = build_auth_response(user)
+
+        return {
+            "mfa_setup_required": True,
+            "message": "Admin MFA setup required",
+            "access_token": auth_data["access_token"],
+            "refresh_token": auth_data["refresh_token"],
+            "user": auth_data["user"],
+        }
+
+    # =========================
+    # OWNER / BROKER MFA FLOW
+    # =========================
     if (
         user.role in ["owner", "broker"]
         and user.is_2fa_enabled
@@ -142,6 +138,7 @@ def login_user(email, password):
         return {
             "mfa_required": True,
             "user_id": user.id,
+            "email": user.email,
             "role": user.role,
             "message": "MFA verification required"
         }
@@ -152,11 +149,16 @@ def login_user(email, password):
 def verify_mfa_login(user_id, code):
     try:
         user = CustomUser.objects.get(id=user_id)
+
     except CustomUser.DoesNotExist:
         raise Exception("Invalid user")
 
-    if user.role not in ["owner", "broker"]:
-        raise Exception("MFA login is only for owner and broker")
+    # Now MFA login supports owner, broker, and admin
+    if user.role not in ["owner", "broker", "admin"]:
+        raise Exception("MFA login is only for owner, broker and admin")
+
+    if not user.is_active:
+        raise Exception("This account is blocked or inactive")
 
     if not user.is_2fa_enabled or not user.otp_secret:
         raise Exception("MFA is not enabled")
@@ -167,15 +169,12 @@ def verify_mfa_login(user_id, code):
     return build_auth_response(user)
 
 
-
-
 def logout_user(refresh_token):
     token = RefreshToken(refresh_token)
     token.blacklist()
 
 
 def google_auth(token):
-
     idinfo = id_token.verify_oauth2_token(
         token,
         requests.Request(),
@@ -197,6 +196,28 @@ def google_auth(token):
     if not user.is_active:
         raise Exception("Please verify your email first")
 
+    # Admin Google login also requires MFA if enabled
+    if user.role == "admin":
+
+        if user.is_2fa_enabled:
+            return {
+                "mfa_required": True,
+                "user_id": user.id,
+                "email": user.email,
+                "role": user.role,
+                "message": "Admin MFA verification required"
+            }
+
+        auth_data = build_auth_response(user)
+
+        return {
+            "mfa_setup_required": True,
+            "message": "Admin MFA setup required",
+            "access_token": auth_data["access_token"],
+            "refresh_token": auth_data["refresh_token"],
+            "user": auth_data["user"],
+        }
+
     if (
         user.role in ["owner", "broker"]
         and user.is_2fa_enabled
@@ -204,6 +225,7 @@ def google_auth(token):
         return {
             "mfa_required": True,
             "user_id": user.id,
+            "email": user.email,
             "role": user.role,
             "message": "MFA verification required"
         }

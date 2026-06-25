@@ -1,6 +1,8 @@
-# ai_service/rag.py
+# rag.py — top of file, replace the DJANGO_API_BASE_URL line
+
 import requests
 import os
+import shutil
 from dotenv import load_dotenv
 from langchain_core.documents import Document
 from langchain_community.vectorstores import Chroma
@@ -9,6 +11,9 @@ from langchain_huggingface import HuggingFaceEmbeddings
 load_dotenv()
 
 DJANGO_API_BASE_URL = os.getenv("DJANGO_API_BASE_URL")
+
+# ✅ FIX: use absolute path so it works correctly inside Docker
+CHROMA_DB_PATH = os.path.join(os.path.dirname(__file__), "chroma_db")
 
 
 def get_embeddings():
@@ -121,15 +126,15 @@ def build_vector_store():
 
     # Delete old chroma_db if exists to rebuild fresh
     import shutil
-    if os.path.exists("./chroma_db"):
-        shutil.rmtree("./chroma_db")
+    if os.path.exists(CHROMA_DB_PATH):
+        shutil.rmtree(CHROMA_DB_PATH)
         print("🗑️ Cleared old index")
 
     # Build new vector store
     vector_store = Chroma.from_documents(
         documents=documents,
         embedding=embeddings,
-        persist_directory="./chroma_db"
+        persist_directory=CHROMA_DB_PATH
     )
 
     print(f"✅ Successfully indexed {len(documents)} properties!")
@@ -144,7 +149,7 @@ def load_vector_store():
     embeddings = get_embeddings()
 
     vector_store = Chroma(
-        persist_directory="./chroma_db",
+        persist_directory=CHROMA_DB_PATH,
         embedding_function=embeddings
     )
 

@@ -15,7 +15,7 @@ from accounts.services.profile_service import create_owner_profile,get_owner_pro
 from accounts.services.profile_service import create_broker_profile, get_broker_profile,update_broker_profile
 from accounts.services.auth_service import google_auth
 from accounts.services.password_service import send_forgot_password_email, reset_password
-from accounts.permissions import IsOwnerOrBroker
+from accounts.permissions import IsOwnerOrBrokerOrAdmin
 from accounts.services.auth_service import verify_mfa_login
 
 from accounts.services.email_verification_service import (
@@ -432,7 +432,7 @@ class ResetPasswordAPIView(APIView):
         
         
 class MFASetupView(APIView):
-    permission_classes = [IsOwnerOrBroker]
+    permission_classes = [IsOwnerOrBrokerOrAdmin]
 
     def post(self, request):
         user = request.user
@@ -462,7 +462,7 @@ class MFASetupView(APIView):
 
 
 class MFAVerifySetupView(APIView):
-    permission_classes = [IsOwnerOrBroker]
+    permission_classes = [IsOwnerOrBrokerOrAdmin]
 
     def post(self, request):
         user = request.user
@@ -496,7 +496,7 @@ class MFAVerifySetupView(APIView):
 
 
 class MFADisableView(APIView):
-    permission_classes = [IsOwnerOrBroker]
+    permission_classes = [IsOwnerOrBrokerOrAdmin]
 
     def post(self, request):
         user = request.user

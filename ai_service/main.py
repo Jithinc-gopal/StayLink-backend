@@ -8,13 +8,28 @@ from agent import run_agent
 from rag import build_vector_store
 import os
 from pydantic import BaseModel, Field
+from contextlib import asynccontextmanager
 
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ✅ FIX: rebuild index on every startup so data is never stale
+    print("🚀 Starting up — rebuilding property index...")
+    try:
+        build_vector_store()
+        print("✅ Index ready")
+    except Exception as e:
+        print(f"⚠️ Could not build index on startup: {e}")
+    yield  # app runs here
+
+# Change your FastAPI() line to:
 app = FastAPI(
     title="StayLink AI Service",
     description="AI agent for property search and recommendations",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan   # ✅ add this
 )
-
 # CORS — allows your React frontend to call this API
 # Without this, browser blocks the request
 app.add_middleware(

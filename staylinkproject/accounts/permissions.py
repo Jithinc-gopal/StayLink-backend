@@ -36,11 +36,12 @@ class IsTraveler(BasePermission):
         
 
 
-class IsOwnerOrBroker(BasePermission):
+class IsOwnerOrBrokerOrAdmin(BasePermission):
 
     def has_permission(self, request, view):
 
         return (
             request.user.is_authenticated
-            and request.user.role in ["owner", "broker"]
-        )        
+            and request.user.role in ["owner", "broker", "admin"]
+        )
+        
