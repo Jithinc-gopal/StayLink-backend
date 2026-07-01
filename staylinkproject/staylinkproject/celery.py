@@ -1,10 +1,9 @@
-# staylinkproject/celery.py
 import os
 from celery import Celery
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
-    "staylinkproject.settings"
+    "staylinkproject.settings.dev"  # overridden by env var in production
 )
 
 app = Celery("staylinkproject")
@@ -16,6 +15,5 @@ app.config_from_object(
 
 app.autodiscover_tasks()
 
-# ← REMOVED app.conf.beat_schedule from here
-# All scheduled tasks are now in settings.py
-# under CELERY_BEAT_SCHEDULE
+# All scheduled tasks are in settings/base.py under CELERY_BEAT_SCHEDULE
+# Nothing needed here

@@ -54,6 +54,16 @@ def create_property_service(
         PropertyAmenity.objects.bulk_create(
             property_amenities
         )
+        try:
+            from notifications.services import notify_admins
+
+            notify_admins(
+                title="New property listed",
+                message=f"{user.first_name or user.email} listed a new property: {property_instance.title}.",
+                notification_type="system"
+            )
+        except Exception as e:
+            print(f"[Admin notification error - property create] {e}")
 
     return property_instance
 

@@ -5,7 +5,7 @@ from channels.security.websocket import AllowedHostsOriginValidator
 
 os.environ.setdefault(
     'DJANGO_SETTINGS_MODULE',
-    'staylinkproject.settings'
+    'staylinkproject.settings.dev'  # overridden by env var in production
 )
 
 # Initialize Django ASGI app first
@@ -21,14 +21,9 @@ import notifications.routing
 application = ProtocolTypeRouter({
 
     # ── HTTP requests ──────────────────────────────────────────────
-    # Normal API calls, admin panel, etc → handled by Django as usual
     'http': django_asgi_app,
 
     # ── WebSocket connections ──────────────────────────────────────
-    # ws://localhost:8000/ws/chat/property/3/?token=...
-    # → Goes through security check (AllowedHostsOriginValidator)
-    # → Then through JWT middleware (reads token from URL)
-    # → Then routed to the correct Consumer via URLRouter
     'websocket': AllowedHostsOriginValidator(
         JWTAuthMiddleware(
             URLRouter(

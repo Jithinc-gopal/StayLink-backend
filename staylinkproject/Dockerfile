@@ -14,4 +14,7 @@ COPY . .
 
 EXPOSE 8000
 
+# collectstatic runs at container start via docker-compose command
+# not at build time — because env vars aren't available at build time
+
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "staylinkproject.asgi:application"]

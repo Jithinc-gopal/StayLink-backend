@@ -1,7 +1,16 @@
 staylinkenv/
+aivenv/
+venv/
 __pycache__/
 *.pyc
 *.pyo
 db.sqlite3
 .env
+.env.prod
 .pytest_cache/
+*.log
+.vscode/
+.git/
+node_modules/
+dist/
+ai_service/chroma_db/

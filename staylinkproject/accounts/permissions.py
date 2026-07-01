@@ -18,10 +18,18 @@ class IsBroker(BasePermission):
 
 
 class IsAdmin(BasePermission):
+    """
+    Used everywhere — admin panel views + any other admin check.
+    Allows superuser OR is_staff OR role == admin.
+    """
     def has_permission(self, request, view):
         return (
             request.user.is_authenticated
-            and request.user.role == "admin"
+            and (
+                request.user.is_superuser
+                or request.user.is_staff
+                or request.user.role == "admin"
+            )
         )
 
 
@@ -34,7 +42,6 @@ class IsTraveler(BasePermission):
         
         
         
-
 
 class IsOwnerOrBrokerOrAdmin(BasePermission):
 

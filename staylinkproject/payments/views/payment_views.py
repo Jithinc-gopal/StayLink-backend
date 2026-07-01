@@ -88,6 +88,26 @@ class VerifyPaymentView(APIView):
 
             booking.status = "cancelled"
             booking.save(update_fields=["status"])
+            
+            create_notification(
+                user=booking.traveler,
+                title="Payment failed",
+                message=(
+                    f"Payment verification failed for your booking "
+                    f"at {booking.property.title}. Your booking has been cancelled."
+                ),
+                notification_type="payment"
+            )
+
+            create_notification(
+                user=booking.property.owner,
+                title="Booking cancelled",
+                message=(
+                    f"A booking for {booking.property.title} was cancelled "
+                    f"because payment verification failed."
+                ),
+                notification_type="booking"
+            )
 
             return Response(
                 {

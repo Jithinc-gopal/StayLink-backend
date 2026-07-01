@@ -56,6 +56,21 @@ class StartConversationView(APIView):
                 "owner": property_obj.owner
             }
         )
+        if created:
+            try:
+                from notifications.services import create_notification
+
+                create_notification(
+                    user=property_obj.owner,
+                    title="New traveler conversation",
+                    message=(
+                        f"{request.user.first_name or request.user.email} "
+                        f"started a conversation about {property_obj.title}."
+                    ),
+                    notification_type="chat"
+                )
+            except Exception as e:
+                print(f"[Notification error - owner conversation] {e}")
 
         return Response({
             "conversation_id": conversation.id
@@ -224,6 +239,21 @@ class StartBrokerConversationView(APIView):
             broker=broker_user,
             user=request.user
         )
+        if created:
+            try:
+                from notifications.services import create_notification
+
+                create_notification(
+                    user=broker_user,
+                    title="New traveler conversation",
+                    message=(
+                        f"{request.user.first_name or request.user.email} "
+                        f"started a conversation with you."
+                    ),
+                    notification_type="chat"
+                )
+            except Exception as e:
+                print(f"[Notification error - broker conversation] {e}")
 
         return Response({
             "conversation_id": conversation.id

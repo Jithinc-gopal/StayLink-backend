@@ -2,7 +2,6 @@
 staylinkenv/
 aivenv/
 venv/
-.env
 
 # Python
 __pycache__/
@@ -17,9 +16,12 @@ media/
 staticfiles/
 celerybeat-schedule*
 
-# Env files
+# Env files — NEVER commit real env files
+.env
 staylinkproject/.env
+staylinkproject/.env.prod
 ai_service/.env
+ai_service/.env.prod
 
 # AI / Chroma
 ai_service/chroma_db/
@@ -33,3 +35,7 @@ ai_service/chroma_db/
 # OS
 .DS_Store
 Thumbs.db
+
+# Node
+node_modules/
+dist/
